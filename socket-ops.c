@@ -1,6 +1,6 @@
-/* Interface functions for the socket.defs interface.
-   Copyright (C) 1995,96,97,99,2000,02,07 Free Software Foundation, Inc.
-   Written by Michael I. Bushnell, p/BSG.
+/*
+   Copyright (C) 2017 Free Software Foundation, Inc.
+   Written by Joan Lledó.
 
    This file is part of the GNU Hurd.
 
@@ -36,13 +36,13 @@ lwip_S_socket_create (struct trivfs_protid *master,
 
 /* Listen on a socket. */
 error_t
-lwip_S_socket_listen (socket_t sock, int queue_limit)
+lwip_S_socket_listen (struct sock_user *user, int queue_limit)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_socket_accept (socket_t sock,
+lwip_S_socket_accept (struct sock_user *user,
 		 mach_port_t *new_port,
 		 mach_msg_type_name_t *new_port_type,
 		 mach_port_t *addr_port,
@@ -52,21 +52,21 @@ lwip_S_socket_accept (socket_t sock,
 }
 
 error_t
-lwip_S_socket_connect (socket_t sock,
-		  mach_port_t addr)
+lwip_S_socket_connect (struct sock_user *user,
+			struct sock_addr *addr)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_socket_bind (socket_t sock,
-	       mach_port_t addr)
+lwip_S_socket_bind (struct sock_user *user,
+			struct sock_addr *addr)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_socket_name ( socket_t sock,
+lwip_S_socket_name (struct sock_user *user,
 			mach_port_t *addr,
 			mach_msg_type_name_t *addrPoly)
 {
@@ -74,7 +74,7 @@ lwip_S_socket_name ( socket_t sock,
 }
 
 error_t
-lwip_S_socket_peername (socket_t sock,
+lwip_S_socket_peername (struct sock_user *user,
 		   mach_port_t *addr_port,
 		   mach_msg_type_name_t *addr_port_name)
 {
@@ -82,8 +82,8 @@ lwip_S_socket_peername (socket_t sock,
 }
 
 error_t
-lwip_S_socket_connect2 (socket_t sock1,
-		   socket_t sock2)
+lwip_S_socket_connect2 (struct sock_user *user,
+			struct sock_user *sock2)
 {
   return EOPNOTSUPP;
 }
@@ -109,7 +109,7 @@ lwip_S_socket_fabricate_address (mach_port_t server,
 }
 
 error_t
-lwip_S_socket_whatis_address (mach_port_t addr,
+lwip_S_socket_whatis_address (struct sock_addr *addr,
 			 int *type,
 			 char **data,
 			 mach_msg_type_number_t *datalen)
@@ -118,14 +118,14 @@ lwip_S_socket_whatis_address (mach_port_t addr,
 }
 
 error_t
-lwip_S_socket_shutdown (socket_t sock,
+lwip_S_socket_shutdown (struct sock_user *user,
 		   int direction)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_socket_getopt (socket_t sock,
+lwip_S_socket_getopt (struct sock_user *user,
 		 int level,
 		 int option,
 		 char **data,
@@ -135,7 +135,7 @@ lwip_S_socket_getopt (socket_t sock,
 }
 
 error_t
-lwip_S_socket_setopt (socket_t sock,
+lwip_S_socket_setopt (struct sock_user *user,
 		 int level,
 		 int option,
 		 char *data,
@@ -145,8 +145,8 @@ lwip_S_socket_setopt (socket_t sock,
 }
 
 error_t
-lwip_S_socket_send (socket_t sock,
-	       mach_port_t addr,
+lwip_S_socket_send (struct sock_user *user,
+	       struct sock_addr *addr,
 	       int flags,
 	       char *data,
 	       size_t datalen,
@@ -160,7 +160,7 @@ lwip_S_socket_send (socket_t sock,
 }
 
 error_t
-lwip_S_socket_recv (socket_t sock,
+lwip_S_socket_recv (struct sock_user *user,
 	       mach_port_t *addrport,
 	       mach_msg_type_name_t *addrporttype,
 	       int flags,

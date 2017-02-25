@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 1995,96,97,99,2000,02,07 Free Software Foundation, Inc.
+   Copyright (C) 2017 Free Software Foundation, Inc.
    Written by Joan Lledó.
 
    This file is part of the GNU Hurd.
@@ -26,6 +26,10 @@
 #include <argp.h>
 #include <sys/mman.h>
 #include <hurd/trivfs.h>
+
+#include <lwip-hurd.h>
+#include <lwip_io_S.h>
+#include <lwip_socket_S.h>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -124,9 +128,51 @@ struct argp argst = {
 };
 
 int
-pfinet_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
+lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
 {
-  return (trivfs_demuxer (inp, outp));
+  struct port_info *pi;
+
+  /* We have several classes in one bucket, which need to be demuxed
+     differently.  */
+  if (MACH_MSGH_BITS_LOCAL (inp->msgh_bits) ==
+      MACH_MSG_TYPE_PROTECTED_PAYLOAD)
+    pi = ports_lookup_payload (lwip_bucket,
+			       inp->msgh_protected_payload,
+			       socketport_class);
+  else
+    pi = ports_lookup_port (lwip_bucket,
+			    inp->msgh_local_port,
+			    socketport_class);
+
+  if (pi)
+    {
+      ports_port_deref (pi);
+
+      mig_routine_t routine;
+      if ((routine = lwip_io_server_routine (inp)) ||
+          (routine = lwip_socket_server_routine (inp)) ||
+          (routine = NULL, trivfs_demuxer (inp, outp)))
+        {
+          if (routine)
+            (*routine) (inp, outp);
+          return TRUE;
+        }
+      else
+        return FALSE;
+    }
+  else
+    {
+      mig_routine_t routine;
+      if ((routine = lwip_socket_server_routine (inp)) ||
+          (routine = NULL, trivfs_demuxer (inp, outp)))
+        {
+          if (routine)
+            (*routine) (inp, outp);
+          return TRUE;
+        }
+      else
+        return FALSE;
+    }
 }
 
 int
@@ -134,7 +180,10 @@ main (int argc, char **argv)
 {
   error_t err;
   mach_port_t bootstrap;
-  struct trivfs_control *fsys;
+  
+  lwip_bucket = ports_create_bucket ();
+  addrport_class = ports_create_class (0, 0);
+  socketport_class = ports_create_class (0, 0);
 
   // Program arguments parsing
   argp_parse (&argst, argc, argv, 0, 0, 0);
@@ -144,14 +193,14 @@ main (int argc, char **argv)
     error (-1, 0, "Must be started as a translator");
 
   /* Reply to our parent */
-  err = trivfs_startup (bootstrap, 0, 0, 0, 0, 0, &fsys);
+  err = trivfs_startup (bootstrap, 0, 0, lwip_bucket, 0, lwip_bucket, &lwipcntl);
   mach_port_deallocate (mach_task_self (), bootstrap);
   if (err)
     {
       return (-1);
     }
 
-  ports_manage_port_operations_multithread (fsys->pi.bucket, pfinet_demuxer,
+  ports_manage_port_operations_multithread (lwip_bucket, lwip_demuxer,
 					    30 * 1000, 2 * 60 * 1000, 0);
 
   return 0;
