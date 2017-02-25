@@ -212,8 +212,8 @@ struct lwip_sock {
   u16_t sendevent;
   /** error happened for this socket, set by event_callback(), tested by select */
   u16_t errevent;
-  /** last error that occurred on this socket (in fact, all our errnos fit into an u8_t) */
-  u8_t err;
+  /** last error that occurred on this socket */
+  int err;
   /** counter of how many threads are waiting for this socket using select */
   SELWAIT_T select_waiting;
 };
@@ -299,7 +299,7 @@ static volatile int select_cb_ctr;
 
 #define sock_set_errno(sk, e) do { \
   const int sockerr = (e); \
-  sk->err = (u8_t)sockerr; \
+  sk->err = sockerr; \
   set_errno(sockerr); \
 } while (0)
 
@@ -309,8 +309,8 @@ static void event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len
 static void lwip_getsockopt_callback(void *arg);
 static void lwip_setsockopt_callback(void *arg);
 #endif
-static u8_t lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *optlen);
-static u8_t lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_t optlen);
+static int lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *optlen);
+static int lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_t optlen);
 
 #if LWIP_IPV4 && LWIP_IPV6
 static void
@@ -1788,7 +1788,7 @@ lwip_getsockname(int s, struct sockaddr *name, socklen_t *namelen)
 int
 lwip_getsockopt(int s, int level, int optname, void *optval, socklen_t *optlen)
 {
-  u8_t err;
+  int err;
   struct lwip_sock *sock = get_socket(s);
 #if !LWIP_TCPIP_CORE_LOCKING
   LWIP_SETGETSOCKOPT_DATA_VAR_DECLARE(data);
@@ -1883,10 +1883,10 @@ lwip_getsockopt_callback(void *arg)
 /** lwip_getsockopt_impl: the actual implementation of getsockopt:
  * same argument as lwip_getsockopt, either called directly or through callback
  */
-static u8_t
+static int
 lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *optlen)
 {
-  u8_t err = 0;
+  int err = 0;
   struct lwip_sock *sock = tryget_socket(s);
   if (!sock) {
     return EBADF;
@@ -1952,7 +1952,7 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
       if (((sock->err == 0) || (sock->err == EINPROGRESS)) && (sock->conn != NULL)) {
         sock_set_errno(sock, err_to_errno(sock->conn->last_err));
       }
-      *(int *)optval = (sock->err == 0xFF ? (int)-1 : (int)sock->err);
+      *(int *)optval = sock->err;
       sock->err = 0;
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_getsockopt(%d, SOL_SOCKET, SO_ERROR) = %d\n",
                   s, *(int *)optval));
@@ -2194,7 +2194,7 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
 int
 lwip_setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen)
 {
-  u8_t err = 0;
+  int err = 0;
   struct lwip_sock *sock = get_socket(s);
 #if !LWIP_TCPIP_CORE_LOCKING
   LWIP_SETGETSOCKOPT_DATA_VAR_DECLARE(data);
@@ -2284,10 +2284,10 @@ lwip_setsockopt_callback(void *arg)
 /** lwip_setsockopt_impl: the actual implementation of setsockopt:
  * same argument as lwip_setsockopt, either called directly or through callback
  */
-static u8_t
+static int
 lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_t optlen)
 {
-  u8_t err = 0;
+  int err = 0;
   struct lwip_sock *sock = tryget_socket(s);
   if (!sock) {
     return EBADF;
