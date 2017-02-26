@@ -1,6 +1,6 @@
 /*
-   Copyright (C) 2017 Free Software Foundation, Inc.
-   Written by Joan Lledó.
+   Copyright (C) 1995,96,2000 Free Software Foundation, Inc.
+   Written by Michael I. Bushnell, p/BSG.
 
    This file is part of the GNU Hurd.
 
@@ -18,36 +18,16 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
-#ifndef LWIP_HURD_H_
-#define LWIP_HURD_H_
+#include "lwip-hurd.h"
 
-#include <hurd/ports.h>
-#include <hurd/trivfs.h>
-
-struct port_bucket *lwip_bucket;
-struct port_class *socketport_class;
-struct port_class *addrport_class;
-
-struct port_class *lwip_protid_portclass;
-struct port_class *lwip_cntl_portclass;
-
-/* Trivfs control structure for lwip.  */
-struct trivfs_control *lwipcntl;
-
-void clean_addrport (void *);
-void clean_socketport (void *);
-
-/* A port on SOCK.  Multiple sock_user's can point to the same socket. */
-struct sock_user
+/* Nothing need be done here. */
+void
+clean_socketport (void *arg)
 {
-  struct port_info pi;
-  int isroot;
-};
+}
 
-/* Socket address ports. */
-struct sock_addr
+/* Nothing need be done here. */
+void
+clean_addrport (void *arg)
 {
-  struct port_info pi;
-};
-
-#endif
+}

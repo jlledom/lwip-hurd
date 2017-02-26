@@ -184,6 +184,14 @@ main (int argc, char **argv)
   lwip_bucket = ports_create_bucket ();
   addrport_class = ports_create_class (0, 0);
   socketport_class = ports_create_class (0, 0);
+  
+  err = trivfs_add_protid_port_class (&lwip_protid_portclass);
+  if (err)
+    error (1, 0, "error creating control port class");
+
+  err = trivfs_add_control_port_class (&lwip_cntl_portclass);
+  if (err)
+    error (1, 0, "error creating control port class");
 
   // Program arguments parsing
   argp_parse (&argst, argc, argv, 0, 0, 0);
@@ -193,7 +201,8 @@ main (int argc, char **argv)
     error (-1, 0, "Must be started as a translator");
 
   /* Reply to our parent */
-  err = trivfs_startup (bootstrap, 0, 0, lwip_bucket, 0, lwip_bucket, &lwipcntl);
+  err = trivfs_startup (bootstrap, 0, lwip_cntl_portclass, lwip_bucket,
+                          lwip_protid_portclass, lwip_bucket, &lwipcntl);
   mach_port_deallocate (mach_task_self (), bootstrap);
   if (err)
     {
