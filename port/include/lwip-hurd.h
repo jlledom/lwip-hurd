@@ -37,11 +37,14 @@ struct trivfs_control *lwipcntl;
 void clean_addrport (void *);
 void clean_socketport (void *);
 
-/* A port on SOCK.  Multiple sock_user's can point to the same socket. */
+struct sock_user *make_sock_user (int, int, int);
+
+/* Multiple sock_user's can point to the same socket. */
 struct sock_user
 {
   struct port_info pi;
   int isroot;
+  int sock;
 };
 
 /* Socket address ports. */

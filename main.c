@@ -31,6 +31,8 @@
 #include <lwip_io_S.h>
 #include <lwip_socket_S.h>
 
+#include <lwip/sockets.h>
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -40,8 +42,8 @@ extern boolean_t mighello_server
 
 int trivfs_fstype = FSTYPE_MISC;
 int trivfs_fsid = 0;
-int trivfs_support_read = 1;
-int trivfs_support_write = 1;
+int trivfs_support_read = 0;
+int trivfs_support_write = 0;
 int trivfs_support_exec = 0;
 int trivfs_allow_open = O_READ | O_WRITE;
 
@@ -56,37 +58,6 @@ trivfs_goaway (struct trivfs_control *fsys, int flags)
   exit (0);
 }
 
-error_t
-trivfs_S_io_read (struct trivfs_protid *cred,
-		  mach_port_t reply, mach_msg_type_name_t reply_type,
-		  char **data, mach_msg_type_number_t * data_len,
-		  off_t offs, mach_msg_type_number_t amount)
-{
-
-  /* Deny access if they have bad credentials.  */
-  if (!cred)
-    return EOPNOTSUPP;
-  else if (!(cred->po->openmodes & O_READ))
-    return EBADF;
-
-  return 0;
-}
-
-error_t
-trivfs_S_io_write (struct trivfs_protid * cred,
-		   mach_port_t reply, mach_msg_type_name_t reply_type,
-		   char **data, mach_msg_type_number_t * data_len,
-		   off_t offs, mach_msg_type_number_t amount)
-{
-
-  /* Deny access if they have bad credentials.  */
-  if (!cred)
-    return EOPNOTSUPP;
-  else if (!(cred->po->openmodes & O_READ))
-    return EBADF;
-
-  return 0;
-}
 
 /* Parse a single option. */
 static error_t
@@ -180,6 +151,7 @@ main (int argc, char **argv)
 {
   error_t err;
   mach_port_t bootstrap;
+  int domain;
   
   lwip_bucket = ports_create_bucket ();
   addrport_class = ports_create_class (0, 0);
@@ -208,6 +180,10 @@ main (int argc, char **argv)
     {
       return (-1);
     }
+
+  //Set the domain of this node. FIXME: Get the proper domain
+  domain = PF_INET;
+  lwipcntl->hook = (void*)&domain;
 
   ports_manage_port_operations_multithread (lwip_bucket, lwip_demuxer,
 					    30 * 1000, 2 * 60 * 1000, 0);

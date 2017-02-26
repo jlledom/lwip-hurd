@@ -20,6 +20,28 @@
 
 #include "lwip-hurd.h"
 
+/* Create a sock_user structure, initialized from SOCK and ISROOT.
+   If NOINSTALL is set, don't put it in the portset.*/
+struct sock_user *
+make_sock_user (int sock, int isroot, int noinstall)
+{
+  error_t err;
+  struct sock_user *user;
+
+  if (noinstall)
+    err = ports_create_port_noinstall (socketport_class, lwip_bucket,
+				       sizeof (struct sock_user), &user);
+  else
+    err = ports_create_port (socketport_class, lwip_bucket,
+			     sizeof (struct sock_user), &user);
+  if (err)
+    return 0;
+
+  user->isroot = isroot;
+  user->sock = sock;
+  return user;
+}
+
 /* Nothing need be done here. */
 void
 clean_socketport (void *arg)

@@ -20,8 +20,7 @@
 
 #include <lwip_socket_S.h>
 
-#include <errno.h>
-
+#include <lwip/sockets.h>
 
 error_t
 lwip_S_socket_create (struct trivfs_protid *master,
@@ -30,7 +29,27 @@ lwip_S_socket_create (struct trivfs_protid *master,
 		 mach_port_t *port,
 		 mach_msg_type_name_t *porttype)
 {
-  return EOPNOTSUPP;
+  struct sock_user *user;
+  int sock;
+  int isroot;
+  int *domain;
+  
+  if (!master)
+    return EOPNOTSUPP;
+
+  domain = (int*)master->po->cntl->hook;
+  sock = lwip_socket(*domain, sock_type, protocol);
+  if(sock < 0) {
+    return errno;
+  }
+  isroot = master->isroot;
+
+  user = make_sock_user(sock, isroot, 0);
+  *port = ports_get_right (user);
+  *porttype = MACH_MSG_TYPE_MAKE_SEND;
+  ports_port_deref(user);
+
+  return errno;
 }
 
 
