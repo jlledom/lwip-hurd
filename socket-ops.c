@@ -21,6 +21,7 @@
 #include <lwip_socket_S.h>
 
 #include <lwip/sockets.h>
+#include <lwip-hurd.h>
 
 error_t
 lwip_S_socket_create (struct trivfs_protid *master,
@@ -33,7 +34,7 @@ lwip_S_socket_create (struct trivfs_protid *master,
   int sock;
   int isroot;
   int *domain;
-  
+
   if (!master)
     return EOPNOTSUPP;
 
@@ -74,7 +75,18 @@ error_t
 lwip_S_socket_connect (struct sock_user *user,
 			struct sock_addr *addr)
 {
-  return EOPNOTSUPP;
+  error_t err;
+
+  if (!user || !addr)
+    return EOPNOTSUPP;
+
+  err = lwip_connect(user->sock, &addr->address, addr->address.sa_len);
+
+  /* MiG should do this for us, but it doesn't. */
+  if (!err)
+    mach_port_deallocate (mach_task_self (), addr->pi.port_right);
+
+  return err;
 }
 
 error_t
@@ -115,7 +127,31 @@ lwip_S_socket_create_address (mach_port_t server,
 			 mach_port_t *addr_port,
 			 mach_msg_type_name_t *addr_port_type)
 {
-  return EOPNOTSUPP;
+  error_t err;
+  struct sock_addr *addrstruct;
+  const struct sockaddr *const sa = (void *) data;
+
+  if (sockaddr_type != AF_INET)
+    return EAFNOSUPPORT;
+  if (sa->sa_family != sockaddr_type
+      || data_len < offsetof (struct sockaddr, sa_data))
+    return EINVAL;
+
+  err = ports_create_port (addrport_class, lwip_bucket,
+			   (offsetof (struct sock_addr, address)
+			    + data_len), &addrstruct);
+  if (err)
+    return err;
+
+  memcpy (&addrstruct->address, data, data_len);
+
+  /* BSD does not require incoming sa_len to be set, so we don't either.  */
+  addrstruct->address.sa_len = data_len;
+
+  *addr_port = ports_get_right (addrstruct);
+  *addr_port_type = MACH_MSG_TYPE_MAKE_SEND;
+  ports_port_deref (addrstruct);
+  return 0;
 }
 
 error_t

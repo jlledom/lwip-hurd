@@ -24,6 +24,9 @@
 #include <hurd/ports.h>
 #include <hurd/trivfs.h>
 
+#include <lwip/netif.h>
+#include <lwip/sockets.h>
+
 struct port_bucket *lwip_bucket;
 struct port_class *socketport_class;
 struct port_class *addrport_class;
@@ -51,6 +54,9 @@ struct sock_user
 struct sock_addr
 {
   struct port_info pi;
+  struct sockaddr address;
 };
+
+struct netif netif_hurd;
 
 #endif

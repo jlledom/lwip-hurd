@@ -30,11 +30,6 @@
 #define LWIP_TIMEVAL_PRIVATE	0
 #include <sys/time.h>
 
-#define PACK_STRUCT_FIELD(x)	x
-#define PACK_STRUCT_STRUCT
-#define PACK_STRUCT_BEGIN
-#define PACK_STRUCT_END
-
 #define S16_F	"d"
 #define U16_F	"u"
 #define X16_F	"x"

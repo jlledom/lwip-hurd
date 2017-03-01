@@ -32,6 +32,8 @@
 #include <lwip_socket_S.h>
 
 #include <lwip/sockets.h>
+#include <lwip/tcpip.h>
+#include <netif/hurdethif.h>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -94,7 +96,7 @@ static struct argp_option options[] = {
   {0}
 };
 
-struct argp argst = {
+static struct argp argst = {
   options, parse_opt, 0, "A translator providing access to LwIP TCP/IP stack."
 };
 
@@ -146,6 +148,22 @@ lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
     }
 }
 
+void
+add_netif()
+{
+  ip4_addr_t ipaddr, netmask, gw;
+
+  IP4_ADDR(&gw, 192,168,123,1);
+  IP4_ADDR(&ipaddr, 192,168,123,178);
+  IP4_ADDR(&netmask, 255,255,255,0);
+
+  netif_set_default(netif_add(&netif_hurd, &ipaddr, &netmask, &gw, 0, hurdethif_init,
+			      tcpip_input));
+  netif_set_up(&netif_hurd);
+  
+  return;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -184,6 +202,9 @@ main (int argc, char **argv)
   //Set the domain of this node. FIXME: Get the proper domain
   domain = PF_INET;
   lwipcntl->hook = (void*)&domain;
+  
+  //Inititalize LwIP
+  tcpip_init(add_netif, 0);
 
   ports_manage_port_operations_multithread (lwip_bucket, lwip_demuxer,
 					    30 * 1000, 2 * 60 * 1000, 0);
