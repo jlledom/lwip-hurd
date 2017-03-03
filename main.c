@@ -157,7 +157,7 @@ add_netif()
   IP4_ADDR(&ipaddr, 192,168,123,178);
   IP4_ADDR(&netmask, 255,255,255,0);
 
-  netif_set_default(netif_add(&netif_hurd, &ipaddr, &netmask, &gw, 0, hurdethif_init,
+  netif_set_default(netif_add(&netif_hurd, &ipaddr, &netmask, &gw, "/dev/eth1", hurdethif_init,
 			      tcpip_input));
   netif_set_up(&netif_hurd);
   

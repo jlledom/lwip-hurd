@@ -18,22 +18,129 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
-#include "lwip/opt.h"
+#include <netif/hurdethif.h>
 
-#include "lwip/def.h"
-#include "lwip/mem.h"
-#include "lwip/pbuf.h"
-#include "lwip/stats.h"
-#include "lwip/snmp.h"
-#include "lwip/ethip6.h"
-#include "lwip/etharp.h"
-#include "netif/ppp/pppoe.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <error.h>
+#include <device/device.h>
+#include <device/net_status.h>
+
+#include <lwip/opt.h>
+#include <lwip/def.h>
+#include <lwip/mem.h>
+#include <lwip/pbuf.h>
+#include <lwip/stats.h>
+#include <lwip/snmp.h>
+#include <lwip/ethip6.h>
+#include <lwip/etharp.h>
 
 /* Define those to better describe your network interface. */
 #define IFNAME0 'e'
 #define IFNAME1 'n'
 
-#if 0 /* don't build */
+static short ether_filter[] =
+{
+#ifdef NETF_IN
+  /* We have to tell the packet filtering code that we're interested in
+     incoming packets.  */
+  NETF_IN, /* Header.  */
+#endif
+  NETF_PUSHLIT | NETF_NOP,
+  1
+};
+static int ether_filter_len = sizeof (ether_filter) / sizeof (short);
+
+static struct bpf_insn bpf_ether_filter[] =
+{
+    {NETF_IN|NETF_BPF, 0, 0, 0},		/* Header. */
+    {BPF_LD|BPF_H|BPF_ABS, 0, 0, 12},		/* Load Ethernet type */
+    {BPF_JMP|BPF_JEQ|BPF_K, 2, 0, 0x0806},	/* Accept ARP */
+    {BPF_JMP|BPF_JEQ|BPF_K, 1, 0, 0x0800},	/* Accept IPv4 */
+    {BPF_JMP|BPF_JEQ|BPF_K, 0, 1, 0x86DD},	/* Accept IPv6 */
+    {BPF_RET|BPF_K, 0, 0, 1500},		/* And return 1500 bytes */
+    {BPF_RET|BPF_K, 0, 0, 0},			/* Or discard it all */
+};
+static int bpf_ether_filter_len = sizeof (bpf_ether_filter) / sizeof (short);
+
+static err_t
+open_device (struct netif *netif)
+{
+  err_t err;
+  device_t master_device;
+  struct ethernetif *ethernetif = netif->state;
+
+  LWIP_ASSERT ("ethernetif->ether_port == MACH_PORT_NULL",
+                  ethernetif->ether_port == MACH_PORT_NULL);
+
+  err = ports_create_port (etherreadclass, etherport_bucket,
+			   sizeof (struct port_info), &ethernetif->readpt);
+  LWIP_ASSERT ("err==0", err==0);
+  ethernetif->readptname = ports_get_right (ethernetif->readpt);
+  mach_port_insert_right (mach_task_self (), ethernetif->readptname, ethernetif->readptname,
+			  MACH_MSG_TYPE_MAKE_SEND);
+
+  mach_port_set_qlimit (mach_task_self (), ethernetif->readptname, MACH_PORT_QLIMIT_MAX);
+
+  master_device = file_name_lookup (ethernetif->devname, O_READ | O_WRITE, 0);
+  if (master_device != MACH_PORT_NULL)
+    {
+      /* The device name here is the path of a device file.  */
+      err = device_open (master_device, D_WRITE | D_READ, "eth", &ethernetif->ether_port);
+      mach_port_deallocate (mach_task_self (), master_device);
+      if (err)
+	error (2, err, "device_open on %s", ethernetif->devname);
+
+      err = device_set_filter (ethernetif->ether_port, ports_get_right (ethernetif->readpt),
+			       MACH_MSG_TYPE_MAKE_SEND, 0,
+			       bpf_ether_filter, bpf_ether_filter_len);
+      if (err)
+	error (2, err, "device_set_filter on %s", ethernetif->devname);
+    }
+  else
+    {
+      /* No, perhaps a Mach device?  */
+      int file_errno = errno;
+      err = get_privileged_ports (0, &master_device);
+      if (err)
+	{
+	  error (0, file_errno, "file_name_lookup %s", ethernetif->devname);
+	  error (2, err, "and cannot get device master port");
+	}
+      err = device_open (master_device, D_WRITE | D_READ, ethernetif->devname, &ethernetif->ether_port);
+      mach_port_deallocate (mach_task_self (), master_device);
+      if (err)
+	{
+	  error (0, file_errno, "file_name_lookup %s", ethernetif->devname);
+	  error (2, err, "device_open(%s)", ethernetif->devname);
+	}
+
+      err = device_set_filter (ethernetif->ether_port, ports_get_right (ethernetif->readpt),
+			       MACH_MSG_TYPE_MAKE_SEND, 0,
+			       ether_filter, ether_filter_len);
+      if (err)
+	error (2, err, "device_set_filter on %s", ethernetif->devname);
+    }
+
+  return ERR_OK;
+}
+
+static err_t
+close_device (struct netif *netif)
+{
+  struct ethernetif *ethernetif = netif->state;
+
+  mach_port_deallocate (mach_task_self (), ethernetif->readptname);
+  ethernetif->readptname = MACH_PORT_NULL;
+  ports_destroy_right (ethernetif->readpt);
+  ethernetif->readpt = NULL;
+  device_close (ethernetif->ether_port);
+  mach_port_deallocate (mach_task_self (), ethernetif->ether_port);
+  ethernetif->ether_port = MACH_PORT_NULL;
+  
+  return ERR_OK;
+}
 
 /**
  * In this function, the hardware should be initialized.
@@ -42,10 +149,41 @@
  * @param netif the already initialized lwip network interface structure
  *        for this hurdethif
  */
-static void
+static err_t
 low_level_init(struct netif *netif)
 {
-  return;
+  /* set MAC hardware address length */
+  netif->hwaddr_len = ETHARP_HWADDR_LEN;
+
+  /* set MAC hardware address */
+  netif->hwaddr[0] = 0x00;
+  netif->hwaddr[1] = 0x11;
+  netif->hwaddr[2] = 0x22;
+  netif->hwaddr[3] = 0x33;
+  netif->hwaddr[4] = 0x44;
+  netif->hwaddr[5] = 0x55;
+
+  /* maximum transfer unit */
+  netif->mtu = 1500;
+
+  /* device capabilities */
+  /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
+  netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP;
+
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+  /*
+   * For hardware/netifs that implement MAC filtering.
+   * All-nodes link-local is handled by default, so we must let the hardware know
+   * to allow multicast packets in.
+   * Should set mld_mac_filter previously. */
+  if (netif->mld_mac_filter != NULL) {
+    ip6_addr_t ip6_allnodes_ll;
+    ip6_addr_set_allnodes_linklocal(&ip6_allnodes_ll);
+    netif->mld_mac_filter(netif, &ip6_allnodes_ll, NETIF_ADD_MAC_FILTER);
+  }
+#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+
+  return open_device(netif);
 }
 
 /**
@@ -63,10 +201,69 @@ low_level_init(struct netif *netif)
  *       to become available since the stack doesn't retry to send a packet
  *       dropped because of memory failure (except for the TCP timers).
  */
-
 static err_t
 low_level_output(struct netif *netif, struct pbuf *p)
 {
+  error_t err;
+  struct ethernetif *ethernetif = netif->state;
+  struct pbuf *q;
+  int count;
+  u8_t tried = 0;
+  
+  //TODO: initiate transfer();
+
+#if ETH_PAD_SIZE
+  pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
+#endif
+
+  for (q = p; q != NULL; q = q->next) {
+    tried++;
+    
+    /* Send the data from the pbuf to the interface, one pbuf at a
+       time. The size of the data in each pbuf is kept in the ->len
+       variable. */
+      do
+      {
+        tried++;
+        err = device_write (ethernetif->ether_port, D_NOWAIT, 0, q->payload, q->len, &count);
+        if (err == EMACH_SEND_INVALID_DEST || err == EMIG_SERVER_DIED)
+        {
+          /* Device probably just died, try to reopen it.  */
+
+          if (tried == 2)
+            /* Too many tries, abort */
+            break;
+
+          close_device (netif);
+          open_device (netif);
+        }
+            else
+        {
+          LWIP_ASSERT ("err==0", err==0);
+          LWIP_ASSERT ("count == q->len", count == q->len);
+        }
+      }
+    while (err);
+  }
+  
+  //TODO: signal that packet should be sent();
+
+  MIB2_STATS_NETIF_ADD(netif, ifoutoctets, p->tot_len);
+  if (((u8_t*)p->payload)[0] & 1) {
+    /* broadcast or multicast packet*/
+    MIB2_STATS_NETIF_INC(netif, ifoutnucastpkts);
+  } else {
+    /* unicast packet */
+    MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
+  }
+  /* increase ifoutdiscards or ifouterrors on error */
+
+#if ETH_PAD_SIZE
+  pbuf_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
+#endif
+
+  LINK_STATS_INC(link.xmit);
+
   return ERR_OK;
 }
 
@@ -93,13 +290,23 @@ low_level_input(struct netif *netif)
  *
  * @param netif the lwip network interface structure for this hurdethif
  */
-static void
+void
 hurdethif_input(struct netif *netif)
 {
-  return;
-}
+  struct pbuf *p;
 
-#endif
+  /* move received packet into a new pbuf */
+  p = low_level_input(netif);
+  /* if no packet could be read, silently ignore this */
+  if (p != NULL) {
+    /* pass all packets to ethernet_input, which decides what packets it supports */
+    if (netif->input(p, netif) != ERR_OK) {
+      LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
+      pbuf_free(p);
+      p = NULL;
+    }
+  }
+}
 
 /**
  * Should be called at the beginning of the program to set up the
@@ -116,5 +323,47 @@ hurdethif_input(struct netif *netif)
 err_t
 hurdethif_init(struct netif *netif)
 {
-  return 0;
+  struct ethernetif *ethernetif;
+
+  LWIP_ASSERT("netif != NULL", (netif != NULL));
+
+  ethernetif = mem_malloc(sizeof(struct ethernetif));
+  if (ethernetif == NULL) {
+    LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_init: out of memory\n"));
+    return ERR_MEM;
+  }
+
+#if LWIP_NETIF_HOSTNAME
+  /* Initialize interface hostname */
+  netif->hostname = "lwip";
+#endif /* LWIP_NETIF_HOSTNAME */
+
+  /*
+   * Initialize the snmp variables and counters inside the struct netif.
+   * The last argument should be replaced with your link speed, in units
+   * of bits per second.
+   */
+  MIB2_INIT_NETIF(netif, snmp_ifType_ethernet_csmacd, LINK_SPEED_OF_YOUR_NETIF_IN_BPS);
+
+  ethernetif->devname = netif->state;
+  netif->state = ethernetif;
+  netif->name[0] = IFNAME0;
+  netif->name[1] = IFNAME1;
+  /* We directly use etharp_output() here to save a function call.
+   * You can instead declare your own function an call etharp_output()
+   * from it if you have to do some checks before sending (e.g. if link
+   * is available...) */
+  netif->output = etharp_output;
+#if LWIP_IPV6
+  netif->output_ip6 = ethip6_output;
+#endif /* LWIP_IPV6 */
+  netif->linkoutput = low_level_output;
+
+  ethernetif->ethaddr = (struct eth_addr *)&(netif->hwaddr[0]);
+
+  etherport_bucket = ports_create_bucket ();
+  etherreadclass = ports_create_class (0, 0);
+
+  /* initialize the hardware */
+  return low_level_init(netif);
 }

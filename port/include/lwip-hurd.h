@@ -18,8 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
-#ifndef LWIP_HURD_H_
-#define LWIP_HURD_H_
+#ifndef LWIP_HURD_H
+#define LWIP_HURD_H
 
 #include <hurd/ports.h>
 #include <hurd/trivfs.h>
