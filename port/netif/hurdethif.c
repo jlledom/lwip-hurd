@@ -23,6 +23,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
+#include <pthread.h>
 #include <error.h>
 #include <device/device.h>
 #include <device/net_status.h>
@@ -92,7 +94,7 @@ open_device (struct netif *netif)
       if (err)
 	error (2, err, "device_open on %s", ethernetif->devname);
 
-      err = device_set_filter (ethernetif->ether_port, ports_get_right (ethernetif->readpt),
+      err = device_set_filter (ethernetif->ether_port, ethernetif->readptname,
 			       MACH_MSG_TYPE_MAKE_SEND, 0,
 			       bpf_ether_filter, bpf_ether_filter_len);
       if (err)
@@ -116,7 +118,7 @@ open_device (struct netif *netif)
 	  error (2, err, "device_open(%s)", ethernetif->devname);
 	}
 
-      err = device_set_filter (ethernetif->ether_port, ports_get_right (ethernetif->readpt),
+      err = device_set_filter (ethernetif->ether_port, ethernetif->readptname,
 			       MACH_MSG_TYPE_MAKE_SEND, 0,
 			       ether_filter, ether_filter_len);
       if (err)
@@ -156,12 +158,12 @@ low_level_init(struct netif *netif)
   netif->hwaddr_len = ETHARP_HWADDR_LEN;
 
   /* set MAC hardware address */
-  netif->hwaddr[0] = 0x00;
-  netif->hwaddr[1] = 0x11;
-  netif->hwaddr[2] = 0x22;
-  netif->hwaddr[3] = 0x33;
-  netif->hwaddr[4] = 0x44;
-  netif->hwaddr[5] = 0x55;
+  netif->hwaddr[0] = 0x52;
+  netif->hwaddr[1] = 0x54;
+  netif->hwaddr[2] = 0x00;
+  netif->hwaddr[3] = 0xb5;
+  netif->hwaddr[4] = 0x38;
+  netif->hwaddr[5] = 0x41;
 
   /* maximum transfer unit */
   netif->mtu = 1500;
@@ -276,9 +278,69 @@ low_level_output(struct netif *netif, struct pbuf *p)
  *         NULL on memory error
  */
 static struct pbuf *
-low_level_input(struct netif *netif)
+low_level_input(struct netif *netif, struct net_rcv_msg *msg)
 {
-  return 0;
+  struct pbuf *p, *q;
+  u16_t len;
+
+  /* Obtain the size of the packet and put it into the "len"
+     variable. */
+  len = PBUF_LINK_HLEN
+    + msg->packet_type.msgt_number - sizeof (struct packet_header);
+
+#if ETH_PAD_SIZE
+  len += ETH_PAD_SIZE; /* allow room for Ethernet padding */
+#endif
+
+  /* We allocate a pbuf chain of pbufs from the pool. */
+  p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
+
+  if (p != NULL) {
+
+#if ETH_PAD_SIZE
+    pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
+#endif
+
+    /* We iterate over the pbuf chain until we have read the entire
+     * packet into the pbuf. */
+    for (q = p; q != NULL; q = q->next) {
+      /* Read enough bytes to fill this pbuf in the chain. The
+       * available data in the pbuf is given by the q->len
+       * variable.
+       * This does not necessarily have to be a memcpy, you can also preallocate
+       * pbufs for a DMA-enabled MAC and after receiving truncate it to the
+       * actually received size. In this case, ensure the tot_len member of the
+       * pbuf is the sum of the chained pbuf len members.
+       */
+      memcpy (q->payload, msg->header, PBUF_LINK_HLEN);
+      memcpy (q->payload + PBUF_LINK_HLEN,
+                msg->packet + sizeof (struct packet_header),
+                len - PBUF_LINK_HLEN);
+      q->len = len;
+    }
+    //TODO: acknowledge that packet has been read();
+
+    MIB2_STATS_NETIF_ADD(netif, ifinoctets, p->tot_len);
+    if (((u8_t*)p->payload)[0] & 1) {
+      /* broadcast or multicast packet*/
+      MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
+    } else {
+      /* unicast packet*/
+      MIB2_STATS_NETIF_INC(netif, ifinucastpkts);
+    }
+#if ETH_PAD_SIZE
+    pbuf_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
+#endif
+
+    LINK_STATS_INC(link.recv);
+  } else {
+    //TODO: drop packet();
+    LINK_STATS_INC(link.memerr);
+    LINK_STATS_INC(link.drop);
+    MIB2_STATS_NETIF_INC(netif, ifindiscards);
+  }
+
+  return p;
 }
 
 /**
@@ -291,12 +353,12 @@ low_level_input(struct netif *netif)
  * @param netif the lwip network interface structure for this hurdethif
  */
 void
-hurdethif_input(struct netif *netif)
+hurdethif_input(struct netif *netif, struct net_rcv_msg *msg)
 {
   struct pbuf *p;
 
   /* move received packet into a new pbuf */
-  p = low_level_input(netif);
+  p = low_level_input(netif, msg);
   /* if no packet could be read, silently ignore this */
   if (p != NULL) {
     /* pass all packets to ethernet_input, which decides what packets it supports */
@@ -306,6 +368,59 @@ hurdethif_input(struct netif *netif)
       p = NULL;
     }
   }
+}
+
+int
+hurdethif_demuxer (mach_msg_header_t *inp,
+		  mach_msg_header_t *outp)
+{
+  struct net_rcv_msg *msg = (struct net_rcv_msg *) inp;
+  struct netif *netif;
+  mach_port_t local_port;
+
+  if (inp->msgh_id != NET_RCV_MSG_ID)
+    return 0;
+
+  if (MACH_MSGH_BITS_LOCAL (inp->msgh_bits) ==
+      MACH_MSG_TYPE_PROTECTED_PAYLOAD)
+    {
+      struct port_info *pi = ports_lookup_payload (NULL,
+						   inp->msgh_protected_payload,
+						   NULL);
+      if (pi)
+	{
+	  local_port = pi->port_right;
+	  ports_port_deref (pi);
+	}
+      else
+	local_port = MACH_PORT_NULL;
+    }
+  else
+    local_port = inp->msgh_local_port;
+
+  for (netif = netif_list; netif; netif = netif->next)
+    if (local_port == ((struct ethernetif*)netif->state)->readptname)
+      break;
+
+  if (!netif)
+  {
+    if (inp->msgh_remote_port != MACH_PORT_NULL)
+      mach_port_deallocate (mach_task_self (), inp->msgh_remote_port);
+    return 1;
+  }
+  
+  hurdethif_input(netif, msg);
+
+  return 1;
+}
+
+static void *
+hurdethif_input_thread (void *arg)
+{
+  ports_manage_port_operations_one_thread (etherport_bucket,
+					   hurdethif_demuxer,
+					   0);
+  return NULL;
 }
 
 /**
@@ -323,6 +438,8 @@ hurdethif_input(struct netif *netif)
 err_t
 hurdethif_init(struct netif *netif)
 {
+  err_t err;
+  pthread_t thread;
   struct ethernetif *ethernetif;
 
   LWIP_ASSERT("netif != NULL", (netif != NULL));
@@ -363,6 +480,16 @@ hurdethif_init(struct netif *netif)
 
   etherport_bucket = ports_create_bucket ();
   etherreadclass = ports_create_class (0, 0);
+  
+  /* initialize the input */
+  err = pthread_create (&thread, NULL, hurdethif_input_thread, NULL);
+  if (!err)
+    pthread_detach (thread);
+  else
+  {
+    errno = err;
+    perror ("pthread_create");
+  }
 
   /* initialize the hardware */
   return low_level_init(netif);
