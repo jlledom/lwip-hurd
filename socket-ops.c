@@ -20,6 +20,8 @@
 
 #include <lwip_socket_S.h>
 
+#include <sys/mman.h>
+
 #include <lwip/sockets.h>
 #include <lwip-hurd.h>
 
@@ -131,7 +133,7 @@ lwip_S_socket_create_address (mach_port_t server,
   struct sock_addr *addrstruct;
   const struct sockaddr *const sa = (void *) data;
 
-  if (sockaddr_type != AF_INET)
+  if (sockaddr_type != AF_INET && sockaddr_type != AF_UNSPEC)
     return EAFNOSUPPORT;
   if (sa->sa_family != sockaddr_type
       || data_len < offsetof (struct sockaddr, sa_data))
@@ -211,7 +213,28 @@ lwip_S_socket_send (struct sock_user *user,
 	       size_t controllen,
 	       mach_msg_type_number_t *amount)
 {
-  return EOPNOTSUPP;
+  int sent;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  /* Don't do this yet, it's too bizarre to think about right now. */
+  if (nports != 0 || controllen != 0)
+    return EINVAL;
+
+  sent = lwip_send(user->sock, data, datalen, flags);
+
+  /* MiG should do this for us, but it doesn't. */
+  if (addr && sent >= 0)
+    mach_port_deallocate (mach_task_self (), addr->pi.port_right);
+
+  if (sent >= 0)
+    {
+      *amount = sent;
+      return 0;
+    }
+  else
+    return (error_t)-sent;
 }
 
 error_t
@@ -229,5 +252,52 @@ lwip_S_socket_recv (struct sock_user *user,
 	       int *outflags,
 	       mach_msg_type_number_t amount)
 {
-  return EOPNOTSUPP;
+  error_t err;
+  int alloced = 0;
+  union { struct sockaddr_storage storage; struct sockaddr sa; } addr;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  /* Instead of this, we should peek and the socket and only
+     allocate as much as necessary. */
+  if (amount > *datalen)
+    {
+      *data = mmap (0, amount, PROT_READ|PROT_WRITE, MAP_ANON, 0, 0);
+      if (*data == MAP_FAILED)
+        /* Should check whether errno is indeed ENOMEM --
+           but this can't be done in a straightforward way,
+           because the glue headers #undef errno. */
+        return ENOMEM;
+      alloced = 1;
+    }
+
+  err = lwip_recv(user->sock, *data, amount, flags);
+
+  if (err < 0)
+    {
+      err = -err;
+      if (alloced)
+        munmap (*data, amount);
+    }
+    else
+    {
+      *datalen = err;
+      if (alloced && round_page (*datalen) < round_page (amount))
+        munmap (*data + round_page (*datalen),
+          round_page (amount) - round_page (*datalen));
+
+      err = lwip_S_socket_create_address (0, addr.sa.sa_family,
+             (void *) &addr.sa, sizeof addr,
+             addrport, addrporttype);
+      if (err && alloced)
+        munmap (*data, *datalen);
+
+      *outflags = flags;
+      *nports = 0;
+      *portstype = MACH_MSG_TYPE_COPY_SEND;
+      *controllen = 0;
+    }
+
+  return err;
 }
