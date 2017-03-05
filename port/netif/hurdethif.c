@@ -42,6 +42,9 @@
 #define IFNAME0 'e'
 #define IFNAME1 'n'
 
+/* Get the MAC address from an array of int */
+#define GET_HWADDR_BYTE(x,n)  (((char*)x)[n])
+
 static short ether_filter[] =
 {
 #ifdef NETF_IN
@@ -67,38 +70,38 @@ static struct bpf_insn bpf_ether_filter[] =
 static int bpf_ether_filter_len = sizeof (bpf_ether_filter) / sizeof (short);
 
 static err_t
-open_device (struct netif *netif)
+hurdethif_device_open (struct netif *netif)
 {
   err_t err;
   device_t master_device;
-  struct ethernetif *ethernetif = netif->state;
+  struct hurdethif *hurdethif = netif->state;
 
-  LWIP_ASSERT ("ethernetif->ether_port == MACH_PORT_NULL",
-                  ethernetif->ether_port == MACH_PORT_NULL);
+  LWIP_ASSERT ("hurdethif->ether_port == MACH_PORT_NULL",
+                  hurdethif->ether_port == MACH_PORT_NULL);
 
   err = ports_create_port (etherreadclass, etherport_bucket,
-			   sizeof (struct port_info), &ethernetif->readpt);
+			   sizeof (struct port_info), &hurdethif->readpt);
   LWIP_ASSERT ("err==0", err==0);
-  ethernetif->readptname = ports_get_right (ethernetif->readpt);
-  mach_port_insert_right (mach_task_self (), ethernetif->readptname, ethernetif->readptname,
+  hurdethif->readptname = ports_get_right (hurdethif->readpt);
+  mach_port_insert_right (mach_task_self (), hurdethif->readptname, hurdethif->readptname,
 			  MACH_MSG_TYPE_MAKE_SEND);
 
-  mach_port_set_qlimit (mach_task_self (), ethernetif->readptname, MACH_PORT_QLIMIT_MAX);
+  mach_port_set_qlimit (mach_task_self (), hurdethif->readptname, MACH_PORT_QLIMIT_MAX);
 
-  master_device = file_name_lookup (ethernetif->devname, O_READ | O_WRITE, 0);
+  master_device = file_name_lookup (hurdethif->devname, O_READ | O_WRITE, 0);
   if (master_device != MACH_PORT_NULL)
     {
       /* The device name here is the path of a device file.  */
-      err = device_open (master_device, D_WRITE | D_READ, "eth", &ethernetif->ether_port);
+      err = device_open (master_device, D_WRITE | D_READ, "eth", &hurdethif->ether_port);
       mach_port_deallocate (mach_task_self (), master_device);
       if (err)
-	error (2, err, "device_open on %s", ethernetif->devname);
+	error (2, err, "device_open on %s", hurdethif->devname);
 
-      err = device_set_filter (ethernetif->ether_port, ethernetif->readptname,
+      err = device_set_filter (hurdethif->ether_port, hurdethif->readptname,
 			       MACH_MSG_TYPE_MAKE_SEND, 0,
 			       bpf_ether_filter, bpf_ether_filter_len);
       if (err)
-	error (2, err, "device_set_filter on %s", ethernetif->devname);
+	error (2, err, "device_set_filter on %s", hurdethif->devname);
     }
   else
     {
@@ -107,39 +110,39 @@ open_device (struct netif *netif)
       err = get_privileged_ports (0, &master_device);
       if (err)
 	{
-	  error (0, file_errno, "file_name_lookup %s", ethernetif->devname);
+	  error (0, file_errno, "file_name_lookup %s", hurdethif->devname);
 	  error (2, err, "and cannot get device master port");
 	}
-      err = device_open (master_device, D_WRITE | D_READ, ethernetif->devname, &ethernetif->ether_port);
+      err = device_open (master_device, D_WRITE | D_READ, hurdethif->devname, &hurdethif->ether_port);
       mach_port_deallocate (mach_task_self (), master_device);
       if (err)
 	{
-	  error (0, file_errno, "file_name_lookup %s", ethernetif->devname);
-	  error (2, err, "device_open(%s)", ethernetif->devname);
+	  error (0, file_errno, "file_name_lookup %s", hurdethif->devname);
+	  error (2, err, "device_open(%s)", hurdethif->devname);
 	}
 
-      err = device_set_filter (ethernetif->ether_port, ethernetif->readptname,
+      err = device_set_filter (hurdethif->ether_port, hurdethif->readptname,
 			       MACH_MSG_TYPE_MAKE_SEND, 0,
 			       ether_filter, ether_filter_len);
       if (err)
-	error (2, err, "device_set_filter on %s", ethernetif->devname);
+	error (2, err, "device_set_filter on %s", hurdethif->devname);
     }
 
   return ERR_OK;
 }
 
 static err_t
-close_device (struct netif *netif)
+hurdethif_device_close (struct netif *netif)
 {
-  struct ethernetif *ethernetif = netif->state;
+  struct hurdethif *hurdethif = netif->state;
 
-  mach_port_deallocate (mach_task_self (), ethernetif->readptname);
-  ethernetif->readptname = MACH_PORT_NULL;
-  ports_destroy_right (ethernetif->readpt);
-  ethernetif->readpt = NULL;
-  device_close (ethernetif->ether_port);
-  mach_port_deallocate (mach_task_self (), ethernetif->ether_port);
-  ethernetif->ether_port = MACH_PORT_NULL;
+  mach_port_deallocate (mach_task_self (), hurdethif->readptname);
+  hurdethif->readptname = MACH_PORT_NULL;
+  ports_destroy_right (hurdethif->readpt);
+  hurdethif->readpt = NULL;
+  device_close (hurdethif->ether_port);
+  mach_port_deallocate (mach_task_self (), hurdethif->ether_port);
+  hurdethif->ether_port = MACH_PORT_NULL;
   
   return ERR_OK;
 }
@@ -152,18 +155,37 @@ close_device (struct netif *netif)
  *        for this hurdethif
  */
 static err_t
-low_level_init(struct netif *netif)
+hurdethif_low_level_init(struct netif *netif)
 {
+  err_t err;
+  size_t count = 2;
+  int net_address[2];
+  device_t ether_port;
+  
+  err = hurdethif_device_open(netif);
+  LWIP_ASSERT ("err==0", err==0);
+  
+  //Get the MAC address
+  ether_port = ((struct hurdethif*)netif->state)->ether_port;
+  LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
+                  count * sizeof (int) >= ETHARP_HWADDR_LEN);
+  err = device_get_status (ether_port, NET_ADDRESS, net_address, &count);
+  if (err)
+    error (2, err, "%s: Cannot get hardware Ethernet address",
+            ((struct hurdethif*)netif->state)->devname);
+  net_address[0] = ntohl (net_address[0]);
+  net_address[1] = ntohl (net_address[1]);
+
   /* set MAC hardware address length */
   netif->hwaddr_len = ETHARP_HWADDR_LEN;
 
   /* set MAC hardware address */
-  netif->hwaddr[0] = 0x52;
-  netif->hwaddr[1] = 0x54;
-  netif->hwaddr[2] = 0x00;
-  netif->hwaddr[3] = 0xb5;
-  netif->hwaddr[4] = 0x38;
-  netif->hwaddr[5] = 0x41;
+  netif->hwaddr[0] = GET_HWADDR_BYTE(net_address,0);
+  netif->hwaddr[1] = GET_HWADDR_BYTE(net_address,1);
+  netif->hwaddr[2] = GET_HWADDR_BYTE(net_address,2);
+  netif->hwaddr[3] = GET_HWADDR_BYTE(net_address,3);
+  netif->hwaddr[4] = GET_HWADDR_BYTE(net_address,4);
+  netif->hwaddr[5] = GET_HWADDR_BYTE(net_address,5);
 
   /* maximum transfer unit */
   netif->mtu = 1500;
@@ -185,7 +207,7 @@ low_level_init(struct netif *netif)
   }
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
 
-  return open_device(netif);
+  return 0;
 }
 
 /**
@@ -204,10 +226,10 @@ low_level_init(struct netif *netif)
  *       dropped because of memory failure (except for the TCP timers).
  */
 static err_t
-low_level_output(struct netif *netif, struct pbuf *p)
+hurdethif_low_level_output(struct netif *netif, struct pbuf *p)
 {
   error_t err;
-  struct ethernetif *ethernetif = netif->state;
+  struct hurdethif *hurdethif = netif->state;
   struct pbuf *q;
   int count;
   u8_t tried = 0;
@@ -227,7 +249,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
       do
       {
         tried++;
-        err = device_write (ethernetif->ether_port, D_NOWAIT, 0, q->payload, q->len, &count);
+        err = device_write (hurdethif->ether_port, D_NOWAIT, 0, q->payload, q->len, &count);
         if (err == EMACH_SEND_INVALID_DEST || err == EMIG_SERVER_DIED)
         {
           /* Device probably just died, try to reopen it.  */
@@ -236,8 +258,8 @@ low_level_output(struct netif *netif, struct pbuf *p)
             /* Too many tries, abort */
             break;
 
-          close_device (netif);
-          open_device (netif);
+          hurdethif_device_close (netif);
+          hurdethif_device_open (netif);
         }
             else
         {
@@ -278,7 +300,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
  *         NULL on memory error
  */
 static struct pbuf *
-low_level_input(struct netif *netif, struct net_rcv_msg *msg)
+hurdethif_low_level_input(struct netif *netif, struct net_rcv_msg *msg)
 {
   struct pbuf *p, *q;
   u16_t len;
@@ -358,12 +380,12 @@ hurdethif_input(struct netif *netif, struct net_rcv_msg *msg)
   struct pbuf *p;
 
   /* move received packet into a new pbuf */
-  p = low_level_input(netif, msg);
+  p = hurdethif_low_level_input(netif, msg);
   /* if no packet could be read, silently ignore this */
   if (p != NULL) {
     /* pass all packets to ethernet_input, which decides what packets it supports */
     if (netif->input(p, netif) != ERR_OK) {
-      LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
+      LWIP_DEBUGF(NETIF_DEBUG, ("hurdethif_input: IP input error\n"));
       pbuf_free(p);
       p = NULL;
     }
@@ -399,7 +421,7 @@ hurdethif_demuxer (mach_msg_header_t *inp,
     local_port = inp->msgh_local_port;
 
   for (netif = netif_list; netif; netif = netif->next)
-    if (local_port == ((struct ethernetif*)netif->state)->readptname)
+    if (local_port == ((struct hurdethif*)netif->state)->readptname)
       break;
 
   if (!netif)
@@ -440,13 +462,13 @@ hurdethif_init(struct netif *netif)
 {
   err_t err;
   pthread_t thread;
-  struct ethernetif *ethernetif;
+  struct hurdethif *hurdethif;
 
   LWIP_ASSERT("netif != NULL", (netif != NULL));
 
-  ethernetif = mem_malloc(sizeof(struct ethernetif));
-  if (ethernetif == NULL) {
-    LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_init: out of memory\n"));
+  hurdethif = mem_malloc(sizeof(struct hurdethif));
+  if (hurdethif == NULL) {
+    LWIP_DEBUGF(NETIF_DEBUG, ("hurdethif_init: out of memory\n"));
     return ERR_MEM;
   }
 
@@ -462,8 +484,8 @@ hurdethif_init(struct netif *netif)
    */
   MIB2_INIT_NETIF(netif, snmp_ifType_ethernet_csmacd, LINK_SPEED_OF_YOUR_NETIF_IN_BPS);
 
-  ethernetif->devname = netif->state;
-  netif->state = ethernetif;
+  hurdethif->devname = netif->state;
+  netif->state = hurdethif;
   netif->name[0] = IFNAME0;
   netif->name[1] = IFNAME1;
   /* We directly use etharp_output() here to save a function call.
@@ -474,9 +496,9 @@ hurdethif_init(struct netif *netif)
 #if LWIP_IPV6
   netif->output_ip6 = ethip6_output;
 #endif /* LWIP_IPV6 */
-  netif->linkoutput = low_level_output;
+  netif->linkoutput = hurdethif_low_level_output;
 
-  ethernetif->ethaddr = (struct eth_addr *)&(netif->hwaddr[0]);
+  hurdethif->ethaddr = (struct eth_addr *)&(netif->hwaddr[0]);
 
   etherport_bucket = ports_create_bucket ();
   etherreadclass = ports_create_class (0, 0);
@@ -492,5 +514,5 @@ hurdethif_init(struct netif *netif)
   }
 
   /* initialize the hardware */
-  return low_level_init(netif);
+  return hurdethif_low_level_init(netif);
 }
