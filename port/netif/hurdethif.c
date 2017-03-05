@@ -383,18 +383,18 @@ hurdethif_demuxer (mach_msg_header_t *inp,
 
   if (MACH_MSGH_BITS_LOCAL (inp->msgh_bits) ==
       MACH_MSG_TYPE_PROTECTED_PAYLOAD)
+  {
+    struct port_info *pi = ports_lookup_payload (NULL,
+             inp->msgh_protected_payload,
+             NULL);
+    if (pi)
     {
-      struct port_info *pi = ports_lookup_payload (NULL,
-						   inp->msgh_protected_payload,
-						   NULL);
-      if (pi)
-	{
-	  local_port = pi->port_right;
-	  ports_port_deref (pi);
-	}
-      else
-	local_port = MACH_PORT_NULL;
+      local_port = pi->port_right;
+      ports_port_deref (pi);
     }
+    else
+      local_port = MACH_PORT_NULL;
+  }
   else
     local_port = inp->msgh_local_port;
 

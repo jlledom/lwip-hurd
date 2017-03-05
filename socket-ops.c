@@ -21,6 +21,7 @@
 #include <lwip_socket_S.h>
 
 #include <sys/mman.h>
+#include <hurd/fshelp.h>
 
 #include <lwip/sockets.h>
 #include <lwip-hurd.h>
@@ -32,6 +33,7 @@ lwip_S_socket_create (struct trivfs_protid *master,
 		 mach_port_t *port,
 		 mach_msg_type_name_t *porttype)
 {
+  error_t err;
   struct sock_user *user;
   int sock;
   int isroot;
@@ -39,13 +41,30 @@ lwip_S_socket_create (struct trivfs_protid *master,
 
   if (!master)
     return EOPNOTSUPP;
+  
+  if (sock_type != SOCK_STREAM
+      && sock_type != SOCK_DGRAM
+      && sock_type != SOCK_RAW)
+    return EPROTOTYPE;
 
   domain = (int*)master->po->cntl->hook;
   sock = lwip_socket(*domain, sock_type, protocol);
   if(sock < 0) {
     return errno;
   }
+
   isroot = master->isroot;
+  if (!isroot)
+  {
+    struct stat st;
+
+    st.st_uid = lwip_owner;
+    st.st_gid = lwip_group;
+
+    err = fshelp_isowner (&st, master->user);
+    if (! err)
+    isroot = 1;
+  }
 
   user = make_sock_user(sock, isroot, 0);
   *port = ports_get_right (user);

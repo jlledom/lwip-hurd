@@ -118,34 +118,36 @@ lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
 			    socketport_class);
 
   if (pi)
-    {
-      ports_port_deref (pi);
+  {
+    ports_port_deref (pi);
 
-      mig_routine_t routine;
-      if ((routine = lwip_io_server_routine (inp)) ||
-          (routine = lwip_socket_server_routine (inp)) ||
-          (routine = NULL, trivfs_demuxer (inp, outp)))
-        {
-          if (routine)
-            (*routine) (inp, outp);
-          return TRUE;
-        }
-      else
-        return FALSE;
-    }
+    mig_routine_t routine;
+    if ((routine = lwip_io_server_routine (inp)) ||
+        (routine = lwip_socket_server_routine (inp)) ||
+        (routine = NULL, trivfs_demuxer (inp, outp)))
+      {
+        if (routine)
+          (*routine) (inp, outp);
+        return TRUE;
+      }
+    else
+      return FALSE;
+  }
   else
-    {
-      mig_routine_t routine;
-      if ((routine = lwip_socket_server_routine (inp)) ||
-          (routine = NULL, trivfs_demuxer (inp, outp)))
-        {
-          if (routine)
-            (*routine) (inp, outp);
-          return TRUE;
-        }
-      else
-        return FALSE;
-    }
+  {
+    mig_routine_t routine;
+    if ((routine = lwip_socket_server_routine (inp)) ||
+        (routine = NULL, trivfs_demuxer (inp, outp)))
+      {
+        if (routine)
+          (*routine) (inp, outp);
+        return TRUE;
+      }
+    else
+      return FALSE;
+  }
+
+  return 0;
 }
 
 void
@@ -168,6 +170,7 @@ int
 main (int argc, char **argv)
 {
   error_t err;
+  struct stat st;
   mach_port_t bootstrap;
   int domain;
   
@@ -195,9 +198,18 @@ main (int argc, char **argv)
                           lwip_protid_portclass, lwip_bucket, &lwipcntl);
   mach_port_deallocate (mach_task_self (), bootstrap);
   if (err)
-    {
-      return (-1);
-    }
+  {
+    return (-1);
+  }
+  
+  /* Initialize status from underlying node.  */
+  lwip_owner = lwip_group = 0;
+  err = io_stat (lwipcntl->underlying, &st);
+  if (! err)
+  {
+    lwip_owner = st.st_uid;
+    lwip_group = st.st_gid;
+  }
 
   //Set the domain of this node. FIXME: Get the proper domain
   domain = PF_INET;

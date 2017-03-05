@@ -57,6 +57,12 @@ struct sock_addr
   struct sockaddr address;
 };
 
+/* Owner of the underlying node.  */
+uid_t lwip_owner;
+
+/* Group of the underlying node.  */
+uid_t lwip_group;
+
 struct netif netif_hurd;
 
 #endif
