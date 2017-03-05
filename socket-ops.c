@@ -63,7 +63,7 @@ lwip_S_socket_create (struct trivfs_protid *master,
 
     err = fshelp_isowner (&st, master->user);
     if (! err)
-    isroot = 1;
+      isroot = 1;
   }
 
   user = make_sock_user(sock, isroot, 0);
@@ -233,6 +233,11 @@ lwip_S_socket_send (struct sock_user *user,
 	       mach_msg_type_number_t *amount)
 {
   int sent;
+  struct iovec iov = { data, datalen };
+  struct msghdr m = { msg_name: addr ? &addr->address : 0,
+		      msg_namelen: addr ? addr->address.sa_len : 0,
+		      msg_flags: flags,
+		      msg_controllen: 0, msg_iov: &iov, msg_iovlen: 1 };
 
   if (!user)
     return EOPNOTSUPP;
@@ -241,7 +246,7 @@ lwip_S_socket_send (struct sock_user *user,
   if (nports != 0 || controllen != 0)
     return EINVAL;
 
-  sent = lwip_send(user->sock, data, datalen, flags);
+  sent = lwip_sendmsg(user->sock, &m, flags);
 
   /* MiG should do this for us, but it doesn't. */
   if (addr && sent >= 0)
