@@ -243,7 +243,14 @@ error_t
 lwip_S_socket_shutdown (struct sock_user *user,
 		   int direction)
 {
-  return EOPNOTSUPP;
+  error_t err;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  err = lwip_shutdown(user->sock, direction);
+
+  return err;
 }
 
 error_t
