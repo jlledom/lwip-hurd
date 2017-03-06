@@ -37,10 +37,11 @@ struct port_class *lwip_cntl_portclass;
 /* Trivfs control structure for lwip.  */
 struct trivfs_control *lwipcntl;
 
-void clean_addrport (void *);
-void clean_socketport (void *);
+void clean_addrport (void*);
+void clean_socketport (void*);
 
 struct sock_user *make_sock_user (int, int, int);
+error_t make_sockaddr_port (int, int,mach_port_t*, mach_msg_type_name_t*);
 
 /* Multiple sock_user's can point to the same socket. */
 struct sock_user

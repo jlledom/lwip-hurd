@@ -20,6 +20,47 @@
 
 #include "lwip-hurd.h"
 
+#include <lwip/sockets.h>
+
+/* Create a sockaddr port.  Fill in *ADDR and *ADDRTYPE accordingly.
+   The address should come from SOCK; PEER is 0 if we want this socket's
+   name and 1 if we want the peer's name. */
+error_t
+make_sockaddr_port (int sock,
+		    int peer,
+		    mach_port_t *addr,
+		    mach_msg_type_name_t *addrtype)
+{
+  union { struct sockaddr_storage storage; struct sockaddr sa; } buf;
+  int buflen = sizeof buf;
+  error_t err;
+  struct sock_addr *addrstruct;
+
+  if(peer)
+    err = lwip_getpeername(sock, &buf.sa, (socklen_t*)&buflen);
+  else
+    err = lwip_getsockname(sock, &buf.sa, (socklen_t*)&buflen);
+  if (err)
+    return -err;
+
+  err = ports_create_port (addrport_class, lwip_bucket,
+			   (offsetof (struct sock_addr, address)
+			    + buflen), &addrstruct);
+  if (!err)
+    {
+      addrstruct->address.sa_family = buf.sa.sa_family;
+      addrstruct->address.sa_len = buflen;
+      memcpy (addrstruct->address.sa_data, buf.sa.sa_data,
+	      buflen - offsetof (struct sockaddr, sa_data));
+      *addr = ports_get_right (addrstruct);
+      *addrtype = MACH_MSG_TYPE_MAKE_SEND;
+    }
+
+  ports_port_deref (addrstruct);
+
+  return 0;
+}
+
 /* Create a sock_user structure, initialized from SOCK and ISROOT.
    If NOINSTALL is set, don't put it in the portset.*/
 struct sock_user *

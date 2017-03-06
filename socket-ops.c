@@ -168,7 +168,12 @@ lwip_S_socket_name (struct sock_user *user,
 			mach_port_t *addr,
 			mach_msg_type_name_t *addrPoly)
 {
-  return EOPNOTSUPP;
+  if (!user)
+    return EOPNOTSUPP;
+
+  make_sockaddr_port(user->sock, 0, addr, addrPoly);
+
+  return 0;
 }
 
 error_t
@@ -176,7 +181,14 @@ lwip_S_socket_peername (struct sock_user *user,
 		   mach_port_t *addr_port,
 		   mach_msg_type_name_t *addr_port_name)
 {
-  return EOPNOTSUPP;
+  error_t err;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  err = make_sockaddr_port (user->sock, 1, addr_port, addr_port_name);
+
+  return err;
 }
 
 error_t
@@ -236,7 +248,17 @@ lwip_S_socket_whatis_address (struct sock_addr *addr,
 			 char **data,
 			 mach_msg_type_number_t *datalen)
 {
-  return EOPNOTSUPP;
+  if (!addr)
+    return EOPNOTSUPP;
+
+  *type = addr->address.sa_family;
+  if (*datalen < addr->address.sa_len)
+    *data = mmap (0, addr->address.sa_len,
+		  PROT_READ|PROT_WRITE, MAP_ANON, 0, 0);
+  *datalen = addr->address.sa_len;
+  memcpy (*data, &addr->address, addr->address.sa_len);
+
+  return 0;
 }
 
 error_t
@@ -260,7 +282,16 @@ lwip_S_socket_getopt (struct sock_user *user,
 		 char **data,
 		 size_t *datalen)
 {
-  return EOPNOTSUPP;
+  error_t err;
+
+  if (! user)
+    return EOPNOTSUPP;
+
+  int len = *datalen;
+  err = lwip_getsockopt(user->sock, level, option, *data, (socklen_t*)&len);
+  *datalen = len;
+
+  return err;
 }
 
 error_t
@@ -270,7 +301,14 @@ lwip_S_socket_setopt (struct sock_user *user,
 		 char *data,
 		 size_t datalen)
 {
-  return EOPNOTSUPP;
+  error_t err;
+
+  if (! user)
+    return EOPNOTSUPP;
+
+  err = lwip_setsockopt(user->sock, level, option, data, datalen);
+
+  return err;
 }
 
 error_t

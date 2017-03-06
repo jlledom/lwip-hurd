@@ -20,7 +20,10 @@
 
 #include <lwip_io_S.h>
 
+#include <sys/mman.h>
 #include <errno.h>
+
+#include <lwip/sockets.h>
 
 error_t
 lwip_S_io_write (struct sock_user *user,
@@ -29,7 +32,23 @@ lwip_S_io_write (struct sock_user *user,
 	    off_t offset,
 	    mach_msg_type_number_t *amount)
 {
-  return EOPNOTSUPP;
+  int sent;
+  struct iovec iov = { data, datalen };
+  struct msghdr m = { msg_name: 0, msg_namelen: 0, msg_flags: 0,
+		      msg_controllen: 0, msg_iov: &iov, msg_iovlen: 1 };
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  sent = lwip_sendmsg(user->sock, &m, 0);
+
+  if (sent >= 0)
+    {
+      *amount = sent;
+      return 0;
+    }
+  else
+    return (error_t)-sent;
 }
 
 error_t
@@ -39,7 +58,42 @@ lwip_S_io_read (struct sock_user *user,
 	   off_t offset,
 	   mach_msg_type_number_t amount)
 {
-  return EOPNOTSUPP;
+  error_t err;
+  int alloced = 0;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  /* Instead of this, we should peek and the socket and only
+     allocate as much as necessary. */
+  if (amount > *datalen)
+    {
+      *data = mmap (0, amount, PROT_READ|PROT_WRITE, MAP_ANON, 0, 0);
+      if (*data == MAP_FAILED)
+        /* Should check whether errno is indeed ENOMEM --
+           but this can't be done in a straightforward way,
+           because the glue headers #undef errno. */
+        return ENOMEM;
+      alloced = 1;
+    }
+
+  err = lwip_read(user->sock, *data, amount);
+
+  if (err < 0)
+    {
+      err = -err;
+      if (alloced)
+	munmap (*data, amount);
+    }
+  else
+    {
+      *datalen = err;
+      if (alloced && round_page (*datalen) < round_page (amount))
+	munmap (*data + round_page (*datalen),
+		round_page (amount) - round_page (*datalen));
+      err = 0;
+    }
+  return err;
 }
 
 error_t
@@ -48,7 +102,7 @@ lwip_S_io_seek (struct sock_user *user,
 	   int whence,
 	   off_t *newp)
 {
-  return EOPNOTSUPP;
+  return user ? ESPIPE : EOPNOTSUPP;
 }
 
 error_t
