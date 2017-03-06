@@ -79,7 +79,14 @@ lwip_S_socket_create (struct trivfs_protid *master,
 error_t
 lwip_S_socket_listen (struct sock_user *user, int queue_limit)
 {
-  return EOPNOTSUPP;
+  error_t err;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  err = lwip_listen(user->sock, queue_limit);
+
+  return err;
 }
 
 error_t
@@ -89,7 +96,33 @@ lwip_S_socket_accept (struct sock_user *user,
 		 mach_port_t *addr_port,
 		 mach_msg_type_name_t *addr_port_type)
 {
-  return EOPNOTSUPP;
+  struct sock_user *newuser;
+  union { struct sockaddr_storage storage; struct sockaddr sa; } addr = {};
+  error_t err;
+  int sock, newsock;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  sock = user->sock;
+
+  err = lwip_S_socket_create_address (0, addr.sa.sa_family,
+             (void *) &addr.sa, sizeof addr,
+             addr_port, addr_port_type);
+  if(err)
+    return err;
+
+  newsock = lwip_accept(sock, &addr.sa, (socklen_t*)&addr.sa.sa_len);
+
+  if (newsock != -1)
+	{
+	  newuser = make_sock_user (newsock, user->isroot, 0);
+	  *new_port = ports_get_right (newuser);
+	  *new_port_type = MACH_MSG_TYPE_MAKE_SEND;
+	  ports_port_deref (newuser);
+	}
+
+  return errno;
 }
 
 error_t
@@ -114,7 +147,20 @@ error_t
 lwip_S_socket_bind (struct sock_user *user,
 			struct sock_addr *addr)
 {
-  return EOPNOTSUPP;
+  error_t err;
+
+  if (!user)
+    return EOPNOTSUPP;
+  if (! addr)
+    return EADDRNOTAVAIL;
+
+  err = lwip_bind(user->sock, &addr->address, addr->address.sa_len);
+
+  /* MiG should do this for us, but it doesn't. */
+  if (!err)
+    mach_port_deallocate (mach_task_self (), addr->pi.port_right);
+
+  return err;
 }
 
 error_t
@@ -278,7 +324,7 @@ lwip_S_socket_recv (struct sock_user *user,
 {
   error_t err;
   int alloced = 0;
-  union { struct sockaddr_storage storage; struct sockaddr sa; } addr;
+  union { struct sockaddr_storage storage; struct sockaddr sa; } addr = {};
 
   if (!user)
     return EOPNOTSUPP;
