@@ -408,7 +408,7 @@ lwip_S_socket_recv (struct sock_user *user,
       if (err && alloced)
         munmap (*data, *datalen);
 
-      *outflags = flags;
+      *outflags = lwip_fcntl(user->sock, F_GETFL, 0);
       *nports = 0;
       *portstype = MACH_MSG_TYPE_COPY_SEND;
       *controllen = 0;

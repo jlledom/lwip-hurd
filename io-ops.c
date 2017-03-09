@@ -130,7 +130,16 @@ error_t
 lwip_S_io_set_some_openmodes (struct sock_user *user,
 			 int bits)
 {
-  return EOPNOTSUPP;
+  if (!user)
+    return EOPNOTSUPP;
+
+  if (bits & O_NONBLOCK)
+  {
+    int opt = 1;
+    lwip_ioctl(user->sock, FIONBIO, &opt);
+  }
+    
+  return 0;
 }
 
 
@@ -138,7 +147,16 @@ error_t
 lwip_S_io_clear_some_openmodes (struct sock_user *user,
 		   	int bits)
 {
-  return EOPNOTSUPP;
+  if (!user)
+    return EOPNOTSUPP;
+
+  if (bits & O_NONBLOCK)
+  {
+    int opt = 0;
+    lwip_ioctl(user->sock, FIONBIO, &opt);
+  }
+    
+  return 0;
 }
 
 
