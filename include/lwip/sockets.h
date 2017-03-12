@@ -397,6 +397,12 @@ typedef struct ip_mreq {
 #ifndef O_NDELAY
 #define O_NDELAY    1 /* same as O_NONBLOCK, for compatibility */
 #endif
+#ifndef O_RDONLY
+#define O_RDONLY    2
+#endif
+#ifndef O_WRONLY
+#define O_WRONLY    4
+#endif
 
 #ifndef SHUT_RD
   #define SHUT_RD   0

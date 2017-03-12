@@ -2716,6 +2716,16 @@ lwip_fcntl(int s, int cmd, int val)
   case F_GETFL:
     ret = netconn_is_nonblocking(sock->conn) ? O_NONBLOCK : 0;
     sock_set_errno(sock, 0);
+
+    if(sock->conn->type & NETCONN_TCP) {
+      if(!(sock->conn->pcb.tcp->flags & TF_RXCLOSED)) {
+        ret |= O_RDONLY;
+      }
+      if(!(sock->conn->pcb.tcp->flags & TF_FIN)) {
+        ret |= O_WRONLY;
+      }
+    }
+
     break;
   case F_SETFL:
     if ((val & ~O_NONBLOCK) == 0) {
