@@ -175,8 +175,8 @@ main (int argc, char **argv)
   int domain;
   
   lwip_bucket = ports_create_bucket ();
-  addrport_class = ports_create_class (0, 0);
-  socketport_class = ports_create_class (0, 0);
+  addrport_class = ports_create_class (clean_addrport, 0);
+  socketport_class = ports_create_class (clean_socketport, 0);
   
   err = trivfs_add_protid_port_class (&lwip_protid_portclass);
   if (err)

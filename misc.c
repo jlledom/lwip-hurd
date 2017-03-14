@@ -83,10 +83,13 @@ make_sock_user (int sock, int isroot, int noinstall)
   return user;
 }
 
-/* Nothing need be done here. */
+/*  Release the referenced socket. */
 void
 clean_socketport (void *arg)
 {
+  struct sock_user *const user = arg;
+
+  lwip_close (user->sock);
 }
 
 /* Nothing need be done here. */
