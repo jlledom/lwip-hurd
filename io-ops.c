@@ -128,7 +128,7 @@ lwip_S_io_set_all_openmodes (struct sock_user *user,
   
   lwip_ioctl(user->sock, FIONBIO, &opt);
   
-  return 0;
+  return errno;
 }
 
 error_t
@@ -140,7 +140,7 @@ lwip_S_io_get_openmodes (struct sock_user *user,
 
   *bits = lwip_fcntl(user->sock, F_GETFL, 0);
 
-  return 0;
+  return errno;
 }
 
 error_t
@@ -156,7 +156,7 @@ lwip_S_io_set_some_openmodes (struct sock_user *user,
     lwip_ioctl(user->sock, FIONBIO, &opt);
   }
     
-  return 0;
+  return errno;
 }
 
 
@@ -173,7 +173,7 @@ lwip_S_io_clear_some_openmodes (struct sock_user *user,
     lwip_ioctl(user->sock, FIONBIO, &opt);
   }
     
-  return 0;
+  return errno;
 }
 
 

@@ -79,14 +79,12 @@ lwip_S_socket_create (struct trivfs_protid *master,
 error_t
 lwip_S_socket_listen (struct sock_user *user, int queue_limit)
 {
-  error_t err;
-
   if (!user)
     return EOPNOTSUPP;
 
-  err = lwip_listen(user->sock, queue_limit);
+  lwip_listen(user->sock, queue_limit);
 
-  return err;
+  return errno;
 }
 
 error_t
@@ -140,7 +138,7 @@ lwip_S_socket_connect (struct sock_user *user,
   if (!err)
     mach_port_deallocate (mach_task_self (), addr->pi.port_right);
 
-  return err;
+  return errno;
 }
 
 error_t
@@ -160,7 +158,7 @@ lwip_S_socket_bind (struct sock_user *user,
   if (!err)
     mach_port_deallocate (mach_task_self (), addr->pi.port_right);
 
-  return err;
+  return errno;
 }
 
 error_t
@@ -265,14 +263,12 @@ error_t
 lwip_S_socket_shutdown (struct sock_user *user,
 		   int direction)
 {
-  error_t err;
-
   if (!user)
     return EOPNOTSUPP;
 
-  err = lwip_shutdown(user->sock, direction);
+  lwip_shutdown(user->sock, direction);
 
-  return err;
+  return errno;
 }
 
 error_t
@@ -282,16 +278,14 @@ lwip_S_socket_getopt (struct sock_user *user,
 		 char **data,
 		 size_t *datalen)
 {
-  error_t err;
-
   if (! user)
     return EOPNOTSUPP;
 
   int len = *datalen;
-  err = lwip_getsockopt(user->sock, level, option, *data, (socklen_t*)&len);
+  lwip_getsockopt(user->sock, level, option, *data, (socklen_t*)&len);
   *datalen = len;
 
-  return err;
+  return errno;
 }
 
 error_t
@@ -301,14 +295,12 @@ lwip_S_socket_setopt (struct sock_user *user,
 		 char *data,
 		 size_t datalen)
 {
-  error_t err;
-
   if (! user)
     return EOPNOTSUPP;
 
-  err = lwip_setsockopt(user->sock, level, option, data, datalen);
+  lwip_setsockopt(user->sock, level, option, data, datalen);
 
-  return err;
+  return errno;
 }
 
 error_t
