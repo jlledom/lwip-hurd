@@ -163,15 +163,17 @@ lwip_S_socket_bind (struct sock_user *user,
 
 error_t
 lwip_S_socket_name (struct sock_user *user,
-			mach_port_t *addr,
-			mach_msg_type_name_t *addrPoly)
+			mach_port_t *addr_port,
+			mach_msg_type_name_t *addr_port_name)
 {
+  error_t err;
+  
   if (!user)
     return EOPNOTSUPP;
 
-  make_sockaddr_port(user->sock, 0, addr, addrPoly);
+  err = make_sockaddr_port(user->sock, 0, addr_port, addr_port_name);
 
-  return 0;
+  return err;
 }
 
 error_t
@@ -336,12 +338,11 @@ lwip_S_socket_send (struct sock_user *user,
     mach_port_deallocate (mach_task_self (), addr->pi.port_right);
 
   if (sent >= 0)
-    {
-      *amount = sent;
-      return 0;
-    }
-  else
-    return (error_t)-sent;
+  {
+    *amount = sent;
+  }
+
+  return errno;
 }
 
 error_t
@@ -382,29 +383,28 @@ lwip_S_socket_recv (struct sock_user *user,
   err = lwip_recv(user->sock, *data, amount, flags);
 
   if (err < 0)
-    {
-      err = -err;
-      if (alloced)
-        munmap (*data, amount);
-    }
-    else
-    {
-      *datalen = err;
-      if (alloced && round_page (*datalen) < round_page (amount))
-        munmap (*data + round_page (*datalen),
-          round_page (amount) - round_page (*datalen));
+  {
+    if (alloced)
+      munmap (*data, amount);
+  }
+  else
+  {
+    *datalen = err;
+    if (alloced && round_page (*datalen) < round_page (amount))
+      munmap (*data + round_page (*datalen),
+    round_page (amount) - round_page (*datalen));
 
-      err = lwip_S_socket_create_address (0, addr.sa.sa_family,
-             (void *) &addr.sa, sizeof addr,
-             addrport, addrporttype);
-      if (err && alloced)
-        munmap (*data, *datalen);
+    err = lwip_S_socket_create_address (0, addr.sa.sa_family,
+           (void *) &addr.sa, sizeof addr,
+           addrport, addrporttype);
+    if (err && alloced)
+      munmap (*data, *datalen);
 
-      *outflags = lwip_fcntl(user->sock, F_GETFL, 0);
-      *nports = 0;
-      *portstype = MACH_MSG_TYPE_COPY_SEND;
-      *controllen = 0;
-    }
+    *outflags = lwip_fcntl(user->sock, F_GETFL, 0);
+    *nports = 0;
+    *portstype = MACH_MSG_TYPE_COPY_SEND;
+    *controllen = 0;
+  }
 
-  return err;
+  return errno;
 }

@@ -43,12 +43,11 @@ lwip_S_io_write (struct sock_user *user,
   sent = lwip_sendmsg(user->sock, &m, 0);
 
   if (sent >= 0)
-    {
-      *amount = sent;
-      return 0;
-    }
-  else
-    return (error_t)-sent;
+  {
+    *amount = sent;
+  }
+  
+  return errno;
 }
 
 error_t
@@ -80,20 +79,19 @@ lwip_S_io_read (struct sock_user *user,
   err = lwip_read(user->sock, *data, amount);
 
   if (err < 0)
-    {
-      err = -err;
-      if (alloced)
-	munmap (*data, amount);
-    }
+  {
+    if (alloced)
+      munmap (*data, amount);
+  }
   else
-    {
-      *datalen = err;
-      if (alloced && round_page (*datalen) < round_page (amount))
-	munmap (*data + round_page (*datalen),
-		round_page (amount) - round_page (*datalen));
-      err = 0;
-    }
-  return err;
+  {
+    *datalen = err;
+    if (alloced && round_page (*datalen) < round_page (amount))
+      munmap (*data + round_page (*datalen),
+    round_page (amount) - round_page (*datalen));
+  }
+  
+  return errno;
 }
 
 error_t

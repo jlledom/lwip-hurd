@@ -58,7 +58,7 @@ make_sockaddr_port (int sock,
 
   ports_port_deref (addrstruct);
 
-  return 0;
+  return err;
 }
 
 /* Create a sock_user structure, initialized from SOCK and ISROOT.
