@@ -138,6 +138,11 @@ lwip_S_socket_connect (struct sock_user *user,
   if (!err)
     mach_port_deallocate (mach_task_self (), addr->pi.port_right);
 
+  /* When a connection fails, e.g. there's nobody there, LwIP returns ECONNRESET
+   * but Glibc doesn't expect that, we must return ECONNREFUSED instead. */
+  if(errno == ECONNRESET)
+    errno = ECONNREFUSED;
+
   return errno;
 }
 
