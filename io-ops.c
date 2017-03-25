@@ -21,7 +21,6 @@
 #include <lwip_io_S.h>
 
 #include <sys/mman.h>
-#include <errno.h>
 
 #include <lwip/sockets.h>
 

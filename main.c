@@ -18,6 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
+#include <lwip-hurd.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,7 +29,6 @@
 #include <sys/mman.h>
 #include <hurd/trivfs.h>
 
-#include <lwip-hurd.h>
 #include <lwip_io_S.h>
 #include <lwip_socket_S.h>
 

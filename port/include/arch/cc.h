@@ -22,7 +22,10 @@
 
 #include <stdlib.h> //rand()
 
-//Use standard errno.h
+//Use Glibc's fcntl() macros
+#include <fcntl.h>
+
+//Use Glibc's <errno.h>
 #include <errno.h>
 #define LWIP_ERR_T	int
 

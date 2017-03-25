@@ -20,9 +20,6 @@
 #ifndef HURD_LWIP_LWIPOPTS_H
 #define HURD_LWIP_LWIPOPTS_H
 
-//Use Glibc's fcntl() macros
-#include <fcntl.h>
-
 //An OS is present
 #define NO_SYS		0
 
