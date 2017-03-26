@@ -49,9 +49,8 @@ lwip_S_socket_create (struct trivfs_protid *master,
 
   domain = (int*)master->po->cntl->hook;
   sock = lwip_socket(*domain, sock_type, protocol);
-  if(sock < 0) {
+  if(sock < 0)
     return errno;
-  }
 
   isroot = master->isroot;
   if (!isroot)
