@@ -174,24 +174,75 @@ lwip_S_io_clear_some_openmodes (struct sock_user *user,
 }
 
 
-error_t
-lwip_S_io_select (sock_user_t io_object,
-			mach_port_t reply,
-			mach_msg_type_name_t replyPoly,
-			int *select_type)
+static error_t
+lwip_io_select_common (struct sock_user *user,
+		  mach_port_t reply,
+		  mach_msg_type_name_t reply_type,
+		  struct timeval *tv, int *select_type)
 {
-  return EOPNOTSUPP;
+  fd_set readset, writeset, exceptset;
+  int ret;
+  int sock;
+  
+  if (!user)
+    return EOPNOTSUPP;
+    
+  sock = user->sock;
+  
+  FD_ZERO(&readset);
+  FD_ZERO(&writeset);
+  FD_ZERO(&exceptset);
+  
+  if(*select_type & SELECT_READ)
+  {
+    FD_SET(sock, &readset);
+  }
+  if(*select_type & SELECT_WRITE)
+  {
+    FD_SET(sock, &writeset);
+  }
+  if(*select_type & SELECT_URG)
+  {
+    FD_SET(sock, &exceptset);
+  }
+  
+  ret = lwip_select(sock+1, &readset, &writeset, &exceptset, tv);
+  if(ret > 0)
+  {
+    *select_type = 0;
+    if(FD_ISSET(sock, &readset))
+      *select_type |= SELECT_READ;
+      
+    if(FD_ISSET(sock, &writeset))
+      *select_type |= SELECT_WRITE;
+      
+    if(FD_ISSET(sock, &exceptset))
+      *select_type |= SELECT_URG;
+  }
+
+  return errno;
 }
 
+error_t
+lwip_S_io_select (struct sock_user *user,
+	     mach_port_t reply,
+	     mach_msg_type_name_t reply_type,
+	     int *select_type)
+{
+  return lwip_io_select_common (user, reply, reply_type, NULL, select_type);
+}
 
 error_t
-lwip_S_io_select_timeout (sock_user_t io_object,
-			mach_port_t reply,
-			mach_msg_type_name_t replyPoly,
-			timespec_t timeout,
-			int *select_type)
+lwip_S_io_select_timeout (struct sock_user *user,
+		     mach_port_t reply,
+		     mach_msg_type_name_t reply_type,
+		     struct timespec ts,
+		     int *select_type)
 {
-  return EOPNOTSUPP;
+  struct timeval tv = {};
+  TIMESPEC_TO_TIMEVAL(&tv, &ts);
+  
+  return lwip_io_select_common (user, reply, reply_type, &tv, select_type);
 }
 
 
