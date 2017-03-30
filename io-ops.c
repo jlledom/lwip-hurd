@@ -206,10 +206,11 @@ lwip_io_select_common (struct sock_user *user,
     FD_SET(sock, &exceptset);
   }
   
+  *select_type = 0;
+  
   ret = lwip_select(sock+1, &readset, &writeset, &exceptset, tv);
   if(ret > 0)
   {
-    *select_type = 0;
     if(FD_ISSET(sock, &readset))
       *select_type |= SELECT_READ;
       
