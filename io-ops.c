@@ -106,7 +106,16 @@ error_t
 lwip_S_io_readable (struct sock_user *user,
 	       mach_msg_type_number_t *amount)
 {
-  return EOPNOTSUPP;
+  error_t err;
+  if (!user)
+    return EOPNOTSUPP;
+  
+  err = lwip_ioctl(user->sock, FIONREAD, amount);
+  
+  if(err < 0)
+    *amount = 0;
+  
+  return errno;
 }
 
 error_t

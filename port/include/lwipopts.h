@@ -21,28 +21,31 @@
 #define HURD_LWIP_LWIPOPTS_H
 
 //An OS is present
-#define NO_SYS		0
+#define NO_SYS    0
 
 //Do not rename Sockets API functions
 #define LWIP_COMPAT_SOCKETS	0
 
 //Use Glibc malloc()/free()
-#define MEM_LIBC_MALLOC		1
-#define MEM_ALIGNMENT 		4
+#define MEM_LIBC_MALLOC   1
+#define MEM_ALIGNMENT     4
 
 //Enable modules
-#define LWIP_DHCP		1
-#define LWIP_AUTOIP		1
-#define LWIP_SNMP		1
-#define LWIP_IGMP		1
-#define PPP_SUPPORT		1
-#define LWIP_IPV6		1
+#define LWIP_DHCP   1
+#define LWIP_AUTOIP 1
+#define LWIP_SNMP   1
+#define LWIP_IGMP   1
+#define PPP_SUPPORT 1
+#define LWIP_IPV6   1
 
 //Disable stats
-#define LWIP_STATS			0
+#define LWIP_STATS			    0
 #define LWIP_STATS_DISPLAY	0
 
 //Enable/Disable checksum generation for each netif
-#define LWIP_CHECKSUM_CTRL_PER_NETIF	1
+#define LWIP_CHECKSUM_CTRL_PER_NETIF  1
+
+//Enable SO_RCVBUF and FIONREAD command for ioctl()
+#define LWIP_SO_RCVBUF  1
 
 #endif

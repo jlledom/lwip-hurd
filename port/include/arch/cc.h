@@ -27,20 +27,23 @@
 
 //Use Glibc's <errno.h>
 #include <errno.h>
-#define LWIP_ERR_T	int
+#define LWIP_ERR_T  int
 
 //System provides its own struct timeval
-#define LWIP_TIMEVAL_PRIVATE	0
+#define LWIP_TIMEVAL_PRIVATE  0
 #include <sys/time.h>
 
-#define S16_F	"d"
-#define U16_F	"u"
-#define X16_F	"x"
+//We need INT_MAX
+#include <limits.h>
 
-#define S32_F	"d"
-#define U32_F	"u"
-#define X32_F	"x"
+#define S16_F "d"
+#define U16_F "u"
+#define X16_F "x"
 
-#define LWIP_PLATFORM_DIAG(x)	printf(x)
+#define S32_F "d"
+#define U32_F "u"
+#define X32_F "x"
+
+#define LWIP_PLATFORM_DIAG(x) printf(x)
 
 #endif /* LWIP_ARCH_CC_H */
