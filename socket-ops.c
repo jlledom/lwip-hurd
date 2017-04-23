@@ -366,7 +366,6 @@ lwip_S_socket_recv (struct sock_user *user,
 {
   error_t err;
   int alloced = 0;
-  union { struct sockaddr_storage storage; struct sockaddr sa; } addr = {};
 
   if (!user)
     return EOPNOTSUPP;
@@ -398,13 +397,11 @@ lwip_S_socket_recv (struct sock_user *user,
       munmap (*data + round_page (*datalen),
     round_page (amount) - round_page (*datalen));
 
-    err = lwip_S_socket_create_address (0, addr.sa.sa_family,
-           (void *) &addr.sa, sizeof addr,
-           addrport, addrporttype);
+    err = make_sockaddr_port(user->sock, 1, addrport, addrporttype);
     if (err && alloced)
       munmap (*data, *datalen);
 
-    *outflags = lwip_fcntl(user->sock, F_GETFL, 0);
+    *outflags = 0; /*FIXME*/
     *nports = 0;
     *portstype = MACH_MSG_TYPE_COPY_SEND;
     *controllen = 0;
