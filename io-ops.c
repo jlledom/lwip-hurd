@@ -21,6 +21,9 @@
 #include <lwip_io_S.h>
 
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <assert.h>
+#include <unistd.h>
 
 #include <lwip/sockets.h>
 
@@ -260,14 +263,94 @@ error_t
 lwip_S_io_stat (struct sock_user *user,
 	   struct stat *st)
 {
-  return EOPNOTSUPP;
+  if (!user)
+    return EOPNOTSUPP;
+
+  memset (st, 0, sizeof(struct stat));
+
+  st->st_fstype = FSTYPE_SOCKET;
+  st->st_fsid = getpid ();
+  st->st_ino = user->sock;
+
+  st->st_mode = S_IFSOCK | ACCESSPERMS;
+  st->st_blksize = 512;		/* ???? */
+
+  return 0;
 }
 
 error_t
 lwip_S_io_reauthenticate (struct sock_user *user,
 		     mach_port_t rend)
 {
-  return EOPNOTSUPP;
+  struct sock_user *newuser;
+  uid_t gubuf[20], ggbuf[20], aubuf[20], agbuf[20];
+  uid_t *gen_uids, *gen_gids, *aux_uids, *aux_gids;
+  size_t genuidlen, gengidlen, auxuidlen, auxgidlen;
+  error_t err;
+  size_t i, j;
+  auth_t auth;
+  mach_port_t newright;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  genuidlen = gengidlen = auxuidlen = auxgidlen = 20;
+  gen_uids = gubuf;
+  gen_gids = ggbuf;
+  aux_uids = aubuf;
+  aux_gids = agbuf;
+
+  newuser = make_sock_user (user->sock, 0, 1);
+
+  auth = getauth ();
+  newright = ports_get_send_right (newuser);
+  assert (newright != MACH_PORT_NULL);
+
+  do
+    err = auth_server_authenticate (auth,
+				    rend,
+				    MACH_MSG_TYPE_COPY_SEND,
+				    newright,
+				    MACH_MSG_TYPE_COPY_SEND,
+				    &gen_uids, &genuidlen,
+				    &aux_uids, &auxuidlen,
+				    &gen_gids, &gengidlen,
+				    &aux_gids, &auxgidlen);
+  while (err == EINTR);
+
+  mach_port_deallocate (mach_task_self (), rend);
+  mach_port_deallocate (mach_task_self (), newright);
+  mach_port_deallocate (mach_task_self (), auth);
+
+  if (err)
+    newuser->isroot = 0;
+  else
+    /* Check permission as fshelp_isowner would do.  */
+    for (i = 0; i < genuidlen; i++)
+    {
+      if (gen_uids[i] == 0 || gen_uids[i] == lwip_owner)
+        newuser->isroot = 1;
+      if (gen_uids[i] == lwip_group)
+        for (j = 0; j < gengidlen; j++)
+          if (gen_gids[j] == lwip_group)
+            newuser->isroot = 1;
+    }
+
+  mach_port_move_member (mach_task_self (), newuser->pi.port_right,
+			 lwip_bucket->portset);
+
+  ports_port_deref (newuser);
+
+  if (gubuf != gen_uids)
+    munmap (gen_uids, genuidlen * sizeof (uid_t));
+  if (ggbuf != gen_gids)
+    munmap (gen_gids, gengidlen * sizeof (uid_t));
+  if (aubuf != aux_uids)
+    munmap (aux_uids, auxuidlen * sizeof (uid_t));
+  if (agbuf != aux_gids)
+    munmap (aux_gids, auxgidlen * sizeof (uid_t));
+
+  return 0;
 }
 
 error_t
@@ -277,7 +360,32 @@ lwip_S_io_restrict_auth (struct sock_user *user,
 		    uid_t *uids, size_t uidslen,
 		    uid_t *gids, size_t gidslen)
 {
-  return EOPNOTSUPP;
+  struct sock_user *newuser;
+  int i, j;
+  int isroot;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  isroot = 0;
+  if (user->isroot)
+    /* Check permission as fshelp_isowner would do.  */
+    for (i = 0; i < uidslen; i++)
+    {
+      if (uids[i] == 0 || uids[i] == lwip_owner)
+        isroot = 1;
+      if (uids[i] == lwip_group)
+        for (j = 0; j < gidslen; j++)
+          if (gids[j] == lwip_group)
+            isroot = 1;
+    }
+
+  newuser = make_sock_user (user->sock, isroot, 0);
+  *newobject = ports_get_right (newuser);
+  *newobject_type = MACH_MSG_TYPE_MAKE_SEND;
+  ports_port_deref (newuser);
+
+  return 0;
 }
 
 error_t
@@ -285,7 +393,16 @@ lwip_S_io_duplicate (struct sock_user *user,
 		mach_port_t *newobject,
 		mach_msg_type_name_t *newobject_type)
 {
-  return EOPNOTSUPP;
+  struct sock_user *newuser;
+  if (!user)
+    return EOPNOTSUPP;
+
+  newuser = make_sock_user (user->sock, user->isroot, 0);
+  *newobject = ports_get_right (newuser);
+  *newobject_type = MACH_MSG_TYPE_MAKE_SEND;
+  ports_port_deref (newuser);
+
+  return 0;
 }
 
 error_t
