@@ -42,7 +42,7 @@ lwip_S_io_write (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
-  sent = lwip_sendmsg(user->sock, &m, 0);
+  sent = lwip_sendmsg(user->sock->sockno, &m, 0);
 
   if (sent >= 0)
   {
@@ -78,7 +78,7 @@ lwip_S_io_read (struct sock_user *user,
       alloced = 1;
     }
 
-  err = lwip_read(user->sock, *data, amount);
+  err = lwip_read(user->sock->sockno, *data, amount);
 
   if (err < 0)
   {
@@ -113,7 +113,7 @@ lwip_S_io_readable (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
   
-  err = lwip_ioctl(user->sock, FIONREAD, amount);
+  err = lwip_ioctl(user->sock->sockno, FIONREAD, amount);
   
   if(err < 0)
     *amount = 0;
@@ -135,7 +135,7 @@ lwip_S_io_set_all_openmodes (struct sock_user *user,
   else
     opt = 0;
   
-  lwip_ioctl(user->sock, FIONBIO, &opt);
+  lwip_ioctl(user->sock->sockno, FIONBIO, &opt);
   
   return errno;
 }
@@ -147,7 +147,7 @@ lwip_S_io_get_openmodes (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
-  *bits = lwip_fcntl(user->sock, F_GETFL, 0);
+  *bits = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
 
   return errno;
 }
@@ -162,7 +162,7 @@ lwip_S_io_set_some_openmodes (struct sock_user *user,
   if (bits & O_NONBLOCK)
   {
     int opt = 1;
-    lwip_ioctl(user->sock, FIONBIO, &opt);
+    lwip_ioctl(user->sock->sockno, FIONBIO, &opt);
   }
     
   return errno;
@@ -179,7 +179,7 @@ lwip_S_io_clear_some_openmodes (struct sock_user *user,
   if (bits & O_NONBLOCK)
   {
     int opt = 0;
-    lwip_ioctl(user->sock, FIONBIO, &opt);
+    lwip_ioctl(user->sock->sockno, FIONBIO, &opt);
   }
     
   return errno;
@@ -199,7 +199,7 @@ lwip_io_select_common (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
     
-  sock = user->sock;
+  sock = user->sock->sockno;
   
   FD_ZERO(&readset);
   FD_ZERO(&writeset);
@@ -270,7 +270,7 @@ lwip_S_io_stat (struct sock_user *user,
 
   st->st_fstype = FSTYPE_SOCKET;
   st->st_fsid = getpid ();
-  st->st_ino = user->sock;
+  st->st_ino = user->sock->sockno;
 
   st->st_mode = S_IFSOCK | ACCESSPERMS;
   st->st_blksize = 512;		/* ???? */
@@ -413,7 +413,28 @@ lwip_S_io_identity (struct sock_user *user,
 	       mach_msg_type_name_t *fsystype,
 	       ino_t *fileno)
 {
-  return EOPNOTSUPP;
+  error_t err;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  if (user->sock->identity == MACH_PORT_NULL)
+  {
+    err = mach_port_allocate (mach_task_self (), MACH_PORT_RIGHT_RECEIVE,
+      &user->sock->identity);
+    if (err)
+    {
+      return err;
+    }
+  }
+
+  *id = user->sock->identity;
+  *idtype = MACH_MSG_TYPE_MAKE_SEND;
+  *fsys = fsys_identity;
+  *fsystype = MACH_MSG_TYPE_MAKE_SEND;
+  *fileno = user->sock->sockno;
+
+  return 0;
 }
 
 error_t

@@ -61,20 +61,47 @@ make_sockaddr_port (int sock,
   return err;
 }
 
+struct socket *
+sock_alloc (void)
+{
+  struct socket *sock;
+
+  sock = malloc (sizeof *sock);
+  if (!sock)
+    return 0;
+  memset (sock, 0, sizeof *sock);
+  sock->identity = MACH_PORT_NULL;
+
+  return sock;
+}
+
+/* This is called from the port cleanup function below, and on
+   a newly allocated socket when something went wrong in its creation.  */
+void
+sock_release (struct socket *sock)
+{
+  lwip_close (sock->sockno);
+  
+  if (sock->identity != MACH_PORT_NULL)
+    mach_port_destroy (mach_task_self (), sock->identity);
+
+  free (sock);
+}
+
 /* Create a sock_user structure, initialized from SOCK and ISROOT.
    If NOINSTALL is set, don't put it in the portset.*/
 struct sock_user *
-make_sock_user (int sock, int isroot, int noinstall)
+make_sock_user (struct socket *sock, int isroot, int noinstall)
 {
   error_t err;
   struct sock_user *user;
 
   if (noinstall)
     err = ports_create_port_noinstall (socketport_class, lwip_bucket,
-				       sizeof (struct sock_user), &user);
+              sizeof (struct sock_user), &user);
   else
     err = ports_create_port (socketport_class, lwip_bucket,
-			     sizeof (struct sock_user), &user);
+              sizeof (struct sock_user), &user);
   if (err)
     return 0;
 
@@ -88,8 +115,8 @@ void
 clean_socketport (void *arg)
 {
   struct sock_user *const user = arg;
-
-  lwip_close (user->sock);
+  
+  sock_release(user->sock);
 }
 
 /* Nothing need be done here. */

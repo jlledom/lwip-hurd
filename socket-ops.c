@@ -35,7 +35,7 @@ lwip_S_socket_create (struct trivfs_protid *master,
 {
   error_t err;
   struct sock_user *user;
-  int sock;
+  struct socket *sock;
   int isroot;
   int *domain;
 
@@ -48,9 +48,17 @@ lwip_S_socket_create (struct trivfs_protid *master,
     return EPROTOTYPE;
 
   domain = (int*)master->po->cntl->hook;
-  sock = lwip_socket(*domain, sock_type, protocol);
-  if(sock < 0)
+  
+  sock = sock_alloc ();
+  if (!sock)
+    return ENOMEM;
+
+  sock->sockno = lwip_socket (*domain, sock_type, protocol);
+  if(sock->sockno < 0)
+  {
+    sock_release(sock);
     return errno;
+  }
 
   isroot = master->isroot;
   if (!isroot)
@@ -81,7 +89,7 @@ lwip_S_socket_listen (struct sock_user *user, int queue_limit)
   if (!user)
     return EOPNOTSUPP;
 
-  lwip_listen(user->sock, queue_limit);
+  lwip_listen(user->sock->sockno, queue_limit);
 
   return errno;
 }
@@ -96,7 +104,7 @@ lwip_S_socket_accept (struct sock_user *user,
   struct sock_user *newuser;
   union { struct sockaddr_storage storage; struct sockaddr sa; } addr = {};
   error_t err;
-  int sock, newsock;
+  struct socket *sock, *newsock;
 
   if (!user)
     return EOPNOTSUPP;
@@ -109,10 +117,19 @@ lwip_S_socket_accept (struct sock_user *user,
   if(err)
     return err;
 
-  newsock = lwip_accept(sock, &addr.sa, (socklen_t*)&addr.sa.sa_len);
+  newsock = sock_alloc ();
+  if (!newsock)
+    return ENOMEM;
+    
+  newsock->sockno = lwip_accept(
+              sock->sockno, &addr.sa, (socklen_t*)&addr.sa.sa_len);
 
-  if (newsock != -1)
-	{
+  if (newsock->sockno == -1)
+  {
+    sock_release (newsock);
+	}
+  else
+  {
 	  newuser = make_sock_user (newsock, user->isroot, 0);
 	  *new_port = ports_get_right (newuser);
 	  *new_port_type = MACH_MSG_TYPE_MAKE_SEND;
@@ -131,7 +148,7 @@ lwip_S_socket_connect (struct sock_user *user,
   if (!user || !addr)
     return EOPNOTSUPP;
 
-  err = lwip_connect(user->sock, &addr->address, addr->address.sa_len);
+  err = lwip_connect(user->sock->sockno, &addr->address, addr->address.sa_len);
 
   /* MiG should do this for us, but it doesn't. */
   if (!err)
@@ -156,7 +173,7 @@ lwip_S_socket_bind (struct sock_user *user,
   if (! addr)
     return EADDRNOTAVAIL;
 
-  err = lwip_bind(user->sock, &addr->address, addr->address.sa_len);
+  err = lwip_bind(user->sock->sockno, &addr->address, addr->address.sa_len);
 
   /* MiG should do this for us, but it doesn't. */
   if (!err)
@@ -175,7 +192,7 @@ lwip_S_socket_name (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
-  err = make_sockaddr_port(user->sock, 0, addr_port, addr_port_name);
+  err = make_sockaddr_port(user->sock->sockno, 0, addr_port, addr_port_name);
 
   return err;
 }
@@ -190,7 +207,7 @@ lwip_S_socket_peername (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
-  err = make_sockaddr_port (user->sock, 1, addr_port, addr_port_name);
+  err = make_sockaddr_port (user->sock->sockno, 1, addr_port, addr_port_name);
 
   return err;
 }
@@ -272,7 +289,7 @@ lwip_S_socket_shutdown (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
-  lwip_shutdown(user->sock, direction);
+  lwip_shutdown(user->sock->sockno, direction);
 
   return errno;
 }
@@ -288,7 +305,7 @@ lwip_S_socket_getopt (struct sock_user *user,
     return EOPNOTSUPP;
 
   int len = *datalen;
-  lwip_getsockopt(user->sock, level, option, *data, (socklen_t*)&len);
+  lwip_getsockopt(user->sock->sockno, level, option, *data, (socklen_t*)&len);
   *datalen = len;
 
   return errno;
@@ -304,7 +321,7 @@ lwip_S_socket_setopt (struct sock_user *user,
   if (! user)
     return EOPNOTSUPP;
 
-  lwip_setsockopt(user->sock, level, option, data, datalen);
+  lwip_setsockopt(user->sock->sockno, level, option, data, datalen);
 
   return errno;
 }
@@ -335,7 +352,7 @@ lwip_S_socket_send (struct sock_user *user,
   if (nports != 0 || controllen != 0)
     return EINVAL;
 
-  sent = lwip_sendmsg(user->sock, &m, flags);
+  sent = lwip_sendmsg(user->sock->sockno, &m, flags);
 
   /* MiG should do this for us, but it doesn't. */
   if (addr && sent >= 0)
@@ -383,7 +400,7 @@ lwip_S_socket_recv (struct sock_user *user,
       alloced = 1;
     }
 
-  err = lwip_recv(user->sock, *data, amount, flags);
+  err = lwip_recv(user->sock->sockno, *data, amount, flags);
 
   if (err < 0)
   {
@@ -397,7 +414,7 @@ lwip_S_socket_recv (struct sock_user *user,
       munmap (*data + round_page (*datalen),
     round_page (amount) - round_page (*datalen));
 
-    err = make_sockaddr_port(user->sock, 1, addrport, addrporttype);
+    err = make_sockaddr_port(user->sock->sockno, 1, addrport, addrporttype);
     if (err && alloced)
       munmap (*data, *datalen);
 

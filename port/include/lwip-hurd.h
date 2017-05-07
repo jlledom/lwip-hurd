@@ -34,21 +34,23 @@ struct port_class *addrport_class;
 struct port_class *lwip_protid_portclass;
 struct port_class *lwip_cntl_portclass;
 
+mach_port_t fsys_identity;
+
 /* Trivfs control structure for lwip.  */
 struct trivfs_control *lwipcntl;
 
-void clean_addrport (void*);
-void clean_socketport (void*);
-
-struct sock_user *make_sock_user (int, int, int);
-error_t make_sockaddr_port (int, int,mach_port_t*, mach_msg_type_name_t*);
+struct socket
+{
+  int sockno;
+  mach_port_t identity;
+};
 
 /* Multiple sock_user's can point to the same socket. */
 struct sock_user
 {
   struct port_info pi;
   int isroot;
-  int sock;
+  struct socket *sock;
 };
 
 /* Socket address ports. */
@@ -65,5 +67,14 @@ uid_t lwip_owner;
 uid_t lwip_group;
 
 struct netif netif_hurd;
+
+struct socket *sock_alloc (void);
+void sock_release (struct socket *);
+
+void clean_addrport (void*);
+void clean_socketport (void*);
+
+struct sock_user *make_sock_user (struct socket*, int, int);
+error_t make_sockaddr_port (int, int,mach_port_t*, mach_msg_type_name_t*);
 
 #endif

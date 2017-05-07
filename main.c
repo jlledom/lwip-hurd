@@ -182,6 +182,9 @@ main (int argc, char **argv)
   addrport_class = ports_create_class (clean_addrport, 0);
   socketport_class = ports_create_class (clean_socketport, 0);
   
+  mach_port_allocate (mach_task_self(),
+                          MACH_PORT_RIGHT_RECEIVE, &fsys_identity);
+
   err = trivfs_add_protid_port_class (&lwip_protid_portclass);
   if (err)
     error (1, 0, "error creating control port class");
