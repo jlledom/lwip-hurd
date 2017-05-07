@@ -300,7 +300,7 @@ lwip_S_io_reauthenticate (struct sock_user *user,
   aux_uids = aubuf;
   aux_gids = agbuf;
 
-  newuser = make_sock_user (user->sock, 0, 1);
+  newuser = make_sock_user (user->sock, 0, 1, 0);
 
   auth = getauth ();
   newright = ports_get_send_right (newuser);
@@ -380,7 +380,7 @@ lwip_S_io_restrict_auth (struct sock_user *user,
             isroot = 1;
     }
 
-  newuser = make_sock_user (user->sock, isroot, 0);
+  newuser = make_sock_user (user->sock, isroot, 0, 0);
   *newobject = ports_get_right (newuser);
   *newobject_type = MACH_MSG_TYPE_MAKE_SEND;
   ports_port_deref (newuser);
@@ -397,7 +397,7 @@ lwip_S_io_duplicate (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
-  newuser = make_sock_user (user->sock, user->isroot, 0);
+  newuser = make_sock_user (user->sock, user->isroot, 0, 0);
   *newobject = ports_get_right (newuser);
   *newobject_type = MACH_MSG_TYPE_MAKE_SEND;
   ports_port_deref (newuser);

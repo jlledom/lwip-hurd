@@ -20,6 +20,8 @@
 
 #include "lwip-hurd.h"
 
+#include <assert.h>
+
 #include <lwip/sockets.h>
 
 /* Create a sockaddr port.  Fill in *ADDR and *ADDRTYPE accordingly.
@@ -70,7 +72,9 @@ sock_alloc (void)
   if (!sock)
     return 0;
   memset (sock, 0, sizeof *sock);
+  sock->sockno = -1;
   sock->identity = MACH_PORT_NULL;
+  sock->refcnt = 1;
 
   return sock;
 }
@@ -80,7 +84,11 @@ sock_alloc (void)
 void
 sock_release (struct socket *sock)
 {
-  lwip_close (sock->sockno);
+  if (--sock->refcnt != 0)
+    return;
+  
+  if (sock->sockno > -1)
+    lwip_close (sock->sockno);
   
   if (sock->identity != MACH_PORT_NULL)
     mach_port_destroy (mach_task_self (), sock->identity);
@@ -91,10 +99,12 @@ sock_release (struct socket *sock)
 /* Create a sock_user structure, initialized from SOCK and ISROOT.
    If NOINSTALL is set, don't put it in the portset.*/
 struct sock_user *
-make_sock_user (struct socket *sock, int isroot, int noinstall)
+make_sock_user (struct socket *sock, int isroot, int noinstall, int consume)
 {
   error_t err;
   struct sock_user *user;
+  
+  assert (sock->refcnt != 0);
 
   if (noinstall)
     err = ports_create_port_noinstall (socketport_class, lwip_bucket,
@@ -104,6 +114,9 @@ make_sock_user (struct socket *sock, int isroot, int noinstall)
               sizeof (struct sock_user), &user);
   if (err)
     return 0;
+
+  if (! consume)
+    ++sock->refcnt;
 
   user->isroot = isroot;
   user->sock = sock;

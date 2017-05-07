@@ -43,6 +43,7 @@ struct socket
 {
   int sockno;
   mach_port_t identity;
+  uint_fast32_t refcnt;
 };
 
 /* Multiple sock_user's can point to the same socket. */
@@ -74,7 +75,7 @@ void sock_release (struct socket *);
 void clean_addrport (void*);
 void clean_socketport (void*);
 
-struct sock_user *make_sock_user (struct socket*, int, int);
+struct sock_user *make_sock_user (struct socket*, int, int, int);
 error_t make_sockaddr_port (int, int,mach_port_t*, mach_msg_type_name_t*);
 
 #endif
