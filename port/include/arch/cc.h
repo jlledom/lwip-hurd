@@ -36,6 +36,9 @@
 //We need INT_MAX
 #include <limits.h>
 
+#ifdef LWIP_DEBUG
+#include <stdio.h> //printf()
+
 #define S16_F "d"
 #define U16_F "u"
 #define X16_F "x"
@@ -44,6 +47,13 @@
 #define U32_F "u"
 #define X32_F "x"
 
-#define LWIP_PLATFORM_DIAG(x) printf(x)
+#define LWIP_PLATFORM_DIAG(x)   do { printf x; fflush(NULL);} while(0)
+
+#define LWIP_PLATFORM_ASSERT(x) \
+  do { \
+    printf("Assertion \"%s\" failed at line %d in %s\n", \
+    x, __LINE__, __FILE__); fflush(NULL);  abort(); \
+  } while(0)
+#endif // LWIP_DEBUG
 
 #endif /* LWIP_ARCH_CC_H */

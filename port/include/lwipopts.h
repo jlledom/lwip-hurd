@@ -38,6 +38,11 @@
 #define PPP_SUPPORT 1
 #define LWIP_IPV6   1
 
+//Debug mode
+#ifdef LWIP_DEBUG
+#define SOCKETS_DEBUG   LWIP_DBG_ON
+#endif
+
 //Disable stats
 #define LWIP_STATS			    0
 #define LWIP_STATS_DISPLAY	0
