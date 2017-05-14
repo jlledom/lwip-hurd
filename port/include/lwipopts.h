@@ -28,6 +28,8 @@
 
 //Use Glibc malloc()/free()
 #define MEM_LIBC_MALLOC   1
+#define MEMP_MEM_MALLOC   1
+#define MEM_USE_POOLS     0
 #define MEM_ALIGNMENT     4
 
 //Enable modules
@@ -44,8 +46,8 @@
 #endif
 
 //Disable stats
-#define LWIP_STATS			    0
-#define LWIP_STATS_DISPLAY	0
+#define LWIP_STATS          0
+#define LWIP_STATS_DISPLAY  0
 
 //Enable/Disable checksum generation for each netif
 #define LWIP_CHECKSUM_CTRL_PER_NETIF  1
