@@ -88,20 +88,20 @@ hurdethif_device_open (struct netif *netif)
 
   mach_port_set_qlimit (mach_task_self (), hurdethif->readptname, MACH_PORT_QLIMIT_MAX);
 
-  master_device = file_name_lookup (hurdethif->devname, O_READ | O_WRITE, 0);
+  master_device = file_name_lookup (hurdethif->devname, O_RDWR, 0);
   if (master_device != MACH_PORT_NULL)
     {
       /* The device name here is the path of a device file.  */
       err = device_open (master_device, D_WRITE | D_READ, "eth", &hurdethif->ether_port);
       mach_port_deallocate (mach_task_self (), master_device);
       if (err)
-	error (2, err, "device_open on %s", hurdethif->devname);
+        error (2, err, "device_open on %s", hurdethif->devname);
 
       err = device_set_filter (hurdethif->ether_port, hurdethif->readptname,
-			       MACH_MSG_TYPE_MAKE_SEND, 0,
-			       bpf_ether_filter, bpf_ether_filter_len);
+             MACH_MSG_TYPE_MAKE_SEND, 0,
+             (filter_array_t)bpf_ether_filter, bpf_ether_filter_len);
       if (err)
-	error (2, err, "device_set_filter on %s", hurdethif->devname);
+        error (2, err, "device_set_filter on %s", hurdethif->devname);
     }
   else
     {
@@ -109,23 +109,23 @@ hurdethif_device_open (struct netif *netif)
       int file_errno = errno;
       err = get_privileged_ports (0, &master_device);
       if (err)
-	{
-	  error (0, file_errno, "file_name_lookup %s", hurdethif->devname);
-	  error (2, err, "and cannot get device master port");
-	}
+      {
+        error (0, file_errno, "file_name_lookup %s", hurdethif->devname);
+        error (2, err, "and cannot get device master port");
+      }
       err = device_open (master_device, D_WRITE | D_READ, hurdethif->devname, &hurdethif->ether_port);
       mach_port_deallocate (mach_task_self (), master_device);
       if (err)
-	{
-	  error (0, file_errno, "file_name_lookup %s", hurdethif->devname);
-	  error (2, err, "device_open(%s)", hurdethif->devname);
-	}
+      {
+        error (0, file_errno, "file_name_lookup %s", hurdethif->devname);
+        error (2, err, "device_open(%s)", hurdethif->devname);
+      }
 
       err = device_set_filter (hurdethif->ether_port, hurdethif->readptname,
-			       MACH_MSG_TYPE_MAKE_SEND, 0,
-			       ether_filter, ether_filter_len);
+             MACH_MSG_TYPE_MAKE_SEND, 0,
+             (filter_array_t)ether_filter, ether_filter_len);
       if (err)
-	error (2, err, "device_set_filter on %s", hurdethif->devname);
+        error (2, err, "device_set_filter on %s", hurdethif->devname);
     }
 
   return ERR_OK;
@@ -230,47 +230,40 @@ hurdethif_low_level_output(struct netif *netif, struct pbuf *p)
 {
   error_t err;
   struct hurdethif *hurdethif = netif->state;
-  struct pbuf *q;
   int count;
-  u8_t tried = 0;
-  
-  //TODO: initiate transfer();
+  u8_t tried;
 
 #if ETH_PAD_SIZE
   pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
 #endif
 
-  for (q = p; q != NULL; q = q->next) {
-    tried++;
-    
-    /* Send the data from the pbuf to the interface, one pbuf at a
-       time. The size of the data in each pbuf is kept in the ->len
-       variable. */
-      do
+  LWIP_ASSERT ("p->next==0", p->next==0);
+  tried = 0;
+  /* Send the data from the pbuf to the interface, one pbuf at a
+   time. The size of the data in each pbuf is kept in the ->len
+   variable. */
+  do
+    {
+      tried++;
+      err = device_write (hurdethif->ether_port, D_NOWAIT, 0, p->payload, p->len, &count);
+      if (err == EMACH_SEND_INVALID_DEST || err == EMIG_SERVER_DIED)
       {
-        tried++;
-        err = device_write (hurdethif->ether_port, D_NOWAIT, 0, q->payload, q->len, &count);
-        if (err == EMACH_SEND_INVALID_DEST || err == EMIG_SERVER_DIED)
-        {
-          /* Device probably just died, try to reopen it.  */
+        /* Device probably just died, try to reopen it.  */
 
-          if (tried == 2)
-            /* Too many tries, abort */
-            break;
+        if (tried == 2)
+          /* Too many tries, abort */
+          break;
 
-          hurdethif_device_close (netif);
-          hurdethif_device_open (netif);
-        }
-            else
-        {
-          LWIP_ASSERT ("err==0", err==0);
-          LWIP_ASSERT ("count == q->len", count == q->len);
-        }
+        hurdethif_device_close (netif);
+        hurdethif_device_open (netif);
       }
-    while (err);
-  }
-  
-  //TODO: signal that packet should be sent();
+          else
+      {
+        LWIP_ASSERT ("err==0", err==0);
+        LWIP_ASSERT ("count == p->len", count == p->len);
+      }
+    }
+  while (err);
 
   MIB2_STATS_NETIF_ADD(netif, ifoutoctets, p->tot_len);
   if (((u8_t*)p->payload)[0] & 1) {

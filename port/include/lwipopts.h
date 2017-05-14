@@ -55,4 +55,7 @@
 //Enable SO_RCVBUF and FIONREAD command for ioctl()
 #define LWIP_SO_RCVBUF  1
 
+//Only send complete packets to the device
+#define LWIP_NETIF_TX_SINGLE_PBUF 1
+
 #endif
