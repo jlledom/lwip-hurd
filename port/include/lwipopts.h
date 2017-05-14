@@ -43,6 +43,7 @@
 //Debug mode
 #ifdef LWIP_DEBUG
 #define SOCKETS_DEBUG   LWIP_DBG_ON
+#define ETHARP_DEBUG   LWIP_DBG_ON
 #endif
 
 //Disable stats
@@ -57,5 +58,9 @@
 
 //Only send complete packets to the device
 #define LWIP_NETIF_TX_SINGLE_PBUF 1
+
+// Glibc sends more than one packet in a row during an ARP resolution
+#define ARP_QUEUEING    1
+#define ARP_QUEUE_LEN   10
 
 #endif
