@@ -35,6 +35,7 @@ lwip_S_io_write (struct sock_user *user,
 	    mach_msg_type_number_t *amount)
 {
   int sent;
+  int sockflags;
   struct iovec iov = { data, datalen };
   struct msghdr m = { msg_name: 0, msg_namelen: 0, msg_flags: 0,
 		      msg_controllen: 0, msg_iov: &iov, msg_iovlen: 1 };
@@ -42,6 +43,9 @@ lwip_S_io_write (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
+  sockflags = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
+  if (sockflags & O_NONBLOCK)
+    m.msg_flags |= MSG_DONTWAIT;
   sent = lwip_sendmsg(user->sock->sockno, &m, 0);
 
   if (sent >= 0)

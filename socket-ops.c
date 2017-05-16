@@ -339,6 +339,7 @@ lwip_S_socket_send (struct sock_user *user,
 	       mach_msg_type_number_t *amount)
 {
   int sent;
+  int sockflags;
   struct iovec iov = { data, datalen };
   struct msghdr m = { msg_name: addr ? &addr->address : 0,
 		      msg_namelen: addr ? addr->address.sa_len : 0,
@@ -352,6 +353,9 @@ lwip_S_socket_send (struct sock_user *user,
   if (nports != 0 || controllen != 0)
     return EINVAL;
 
+  sockflags = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
+  if (sockflags & O_NONBLOCK)
+    m.msg_flags |= MSG_DONTWAIT;
   sent = lwip_sendmsg(user->sock->sockno, &m, flags);
 
   /* MiG should do this for us, but it doesn't. */
