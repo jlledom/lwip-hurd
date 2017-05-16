@@ -383,6 +383,7 @@ lwip_S_socket_recv (struct sock_user *user,
 {
   error_t err;
   int alloced = 0;
+  int sockflags;
 
   if (!user)
     return EOPNOTSUPP;
@@ -399,6 +400,10 @@ lwip_S_socket_recv (struct sock_user *user,
         return ENOMEM;
       alloced = 1;
     }
+
+  sockflags = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
+  if (sockflags & O_NONBLOCK)
+    flags |= MSG_DONTWAIT;
 
   err = lwip_recv(user->sock->sockno, *data, amount, flags);
 

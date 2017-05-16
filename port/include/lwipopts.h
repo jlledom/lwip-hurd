@@ -43,7 +43,7 @@
 //Debug mode
 #ifdef LWIP_DEBUG
 #define SOCKETS_DEBUG   LWIP_DBG_ON
-#define ETHARP_DEBUG   LWIP_DBG_ON
+#define ETHARP_DEBUG   LWIP_DBG_OFF
 #endif
 
 //Disable stats

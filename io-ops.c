@@ -61,6 +61,7 @@ lwip_S_io_read (struct sock_user *user,
 {
   error_t err;
   int alloced = 0;
+  int flags;
 
   if (!user)
     return EOPNOTSUPP;
@@ -77,8 +78,12 @@ lwip_S_io_read (struct sock_user *user,
         return ENOMEM;
       alloced = 1;
     }
+  
+  //Get flags
+  flags = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
 
-  err = lwip_read(user->sock->sockno, *data, amount);
+  err = lwip_recv(user->sock->sockno, *data, amount,
+                  (flags & O_NONBLOCK) ? MSG_DONTWAIT : 0);
 
   if (err < 0)
   {
