@@ -261,8 +261,13 @@ lwip_S_io_select_timeout (struct sock_user *user,
 		     struct timespec ts,
 		     int *select_type)
 {
-  struct timeval tv = {};
+  struct timeval tv, current_tv;
+  
   TIMESPEC_TO_TIMEVAL(&tv, &ts);
+  gettimeofday(&current_tv, 0);
+  
+  tv.tv_sec -= current_tv.tv_sec;
+  tv.tv_usec -= current_tv.tv_usec;
   
   return lwip_io_select_common (user, reply, reply_type, &tv, select_type);
 }
