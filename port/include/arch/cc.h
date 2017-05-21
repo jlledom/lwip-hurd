@@ -33,6 +33,10 @@
 #define LWIP_TIMEVAL_PRIVATE  0
 #include <sys/time.h>
 
+//Use our own <sys/socket.h>
+#define LWIP_SYS_SOCKET 1
+#include <sys/socket.h>
+
 //We need INT_MAX
 #include <limits.h>
 

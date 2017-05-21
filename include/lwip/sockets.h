@@ -52,11 +52,118 @@
 extern "C" {
 #endif
 
+#ifndef LWIP_SYS_SOCKET
+
+/* If your port already typedef's socklen_t, define SOCKLEN_T_DEFINED
+   to prevent this code from redefining it. */
+#if !defined(socklen_t) && !defined(SOCKLEN_T_DEFINED)
+typedef u32_t socklen_t;
+#endif
+
 /* If your port already typedef's sa_family_t, define SA_FAMILY_T_DEFINED
    to prevent this code from redefining it. */
 #if !defined(sa_family_t) && !defined(SA_FAMILY_T_DEFINED)
 typedef u8_t sa_family_t;
 #endif
+
+struct sockaddr {
+  u8_t        sa_len;
+  sa_family_t sa_family;
+  char        sa_data[14];
+};
+
+struct sockaddr_storage {
+  u8_t        s2_len;
+  sa_family_t ss_family;
+  char        s2_data1[2];
+  u32_t       s2_data2[3];
+#if LWIP_IPV6
+  u32_t       s2_data3[3];
+#endif /* LWIP_IPV6 */
+};
+
+#if !defined(iovec)
+struct iovec {
+  void  *iov_base;
+  size_t iov_len;
+};
+#endif
+
+struct msghdr {
+  void         *msg_name;
+  socklen_t     msg_namelen;
+  struct iovec *msg_iov;
+  int           msg_iovlen;
+  void         *msg_control;
+  socklen_t     msg_controllen;
+  int           msg_flags;
+};
+
+/*
+ * Structure used for manipulating linger option.
+ */
+struct linger {
+       int l_onoff;                /* option on/off */
+       int l_linger;               /* linger time in seconds */
+};
+
+/* Socket protocol types (TCP/UDP/RAW) */
+#define SOCK_STREAM     1
+#define SOCK_DGRAM      2
+#define SOCK_RAW        3
+
+/*
+ * Level number for (get/set)sockopt() to apply to socket itself.
+ */
+#define  SOL_SOCKET  0xfff    /* options for socket level */
+
+/*
+ * Option flags per-socket. These must match the SOF_ flags in ip.h (checked in init.c)
+ */
+#define SO_REUSEADDR   0x0004 /* Allow local address reuse */
+#define SO_KEEPALIVE   0x0008 /* keep connections alive */
+#define SO_BROADCAST   0x0020 /* permit to send and to receive broadcast messages (see IP_SOF_BROADCAST option) */
+
+/*
+ * Additional options, not kept in so_options.
+ */
+#define SO_DEBUG       0x0001 /* Unimplemented: turn on debugging info recording */
+#define SO_ACCEPTCONN  0x0002 /* socket has had listen() */
+#define SO_DONTROUTE   0x0010 /* Unimplemented: just use interface addresses */
+#define SO_LINGER      0x0080 /* linger on close if data present */
+#define SO_OOBINLINE   0x0100 /* Unimplemented: leave received OOB data in line */
+#define SO_SNDBUF      0x1001 /* Unimplemented: send buffer size */
+#define SO_RCVBUF      0x1002 /* receive buffer size */
+#define SO_SNDLOWAT    0x1003 /* Unimplemented: send low-water mark */
+#define SO_RCVLOWAT    0x1004 /* Unimplemented: receive low-water mark */
+#define SO_SNDTIMEO    0x1005 /* send timeout */
+#define SO_RCVTIMEO    0x1006 /* receive timeout */
+#define SO_ERROR       0x1007 /* get error status and clear */
+#define SO_TYPE        0x1008 /* get socket type */
+
+/* Flags we can use with send and recv. */
+#define MSG_PEEK       0x01    /* Peeks at an incoming message */
+#define MSG_WAITALL    0x02    /* Unimplemented: Requests that the function block until the full amount of data requested can be returned */
+#define MSG_OOB        0x04    /* Unimplemented: Requests out-of-band data. The significance and semantics of out-of-band data are protocol-specific */
+#define MSG_DONTWAIT   0x08    /* Nonblocking i/o for this operation only */
+#define MSG_MORE       0x10    /* Sender will send more */
+
+#define AF_UNSPEC       0
+#define AF_INET         2
+#if LWIP_IPV6
+#define AF_INET6        10
+#else /* LWIP_IPV6 */
+#define AF_INET6        AF_UNSPEC
+#endif /* LWIP_IPV6 */
+
+#ifndef SHUT_RD
+  #define SHUT_RD   0
+  #define SHUT_WR   1
+  #define SHUT_RDWR 2
+#endif
+
+#endif //LWIP_SYS_SOCKET
+
 /* If your port already typedef's in_port_t, define IN_PORT_T_DEFINED
    to prevent this code from redefining it. */
 #if !defined(in_port_t) && !defined(IN_PORT_T_DEFINED)
@@ -85,28 +192,6 @@ struct sockaddr_in6 {
   u32_t           sin6_scope_id; /* Set of interfaces for scope */
 };
 #endif /* LWIP_IPV6 */
-
-struct sockaddr {
-  u8_t        sa_len;
-  sa_family_t sa_family;
-  char        sa_data[14];
-};
-
-struct sockaddr_storage {
-  u8_t        s2_len;
-  sa_family_t ss_family;
-  char        s2_data1[2];
-  u32_t       s2_data2[3];
-#if LWIP_IPV6
-  u32_t       s2_data3[3];
-#endif /* LWIP_IPV6 */
-};
-
-/* If your port already typedef's socklen_t, define SOCKLEN_T_DEFINED
-   to prevent this code from redefining it. */
-#if !defined(socklen_t) && !defined(SOCKLEN_T_DEFINED)
-typedef u32_t socklen_t;
-#endif
 
 struct lwip_sock;
 
@@ -142,83 +227,36 @@ struct lwip_setgetsockopt_data {
 };
 #endif /* !LWIP_TCPIP_CORE_LOCKING */
 
-#if !defined(iovec)
-struct iovec {
-  void  *iov_base;
-  size_t iov_len;
-};
-#endif
-
-struct msghdr {
-  void         *msg_name;
-  socklen_t     msg_namelen;
-  struct iovec *msg_iov;
-  int           msg_iovlen;
-  void         *msg_control;
-  socklen_t     msg_controllen;
-  int           msg_flags;
-};
-
-/* Socket protocol types (TCP/UDP/RAW) */
-#define SOCK_STREAM     1
-#define SOCK_DGRAM      2
-#define SOCK_RAW        3
-
-/*
- * Option flags per-socket. These must match the SOF_ flags in ip.h (checked in init.c)
- */
-#define SO_REUSEADDR   0x0004 /* Allow local address reuse */
-#define SO_KEEPALIVE   0x0008 /* keep connections alive */
-#define SO_BROADCAST   0x0020 /* permit to send and to receive broadcast messages (see IP_SOF_BROADCAST option) */
-
 
 /*
  * Additional options, not kept in so_options.
  */
-#define SO_DEBUG       0x0001 /* Unimplemented: turn on debugging info recording */
-#define SO_ACCEPTCONN  0x0002 /* socket has had listen() */
-#define SO_DONTROUTE   0x0010 /* Unimplemented: just use interface addresses */
+#ifndef SO_USELOOPBACK
 #define SO_USELOOPBACK 0x0040 /* Unimplemented: bypass hardware when possible */
-#define SO_LINGER      0x0080 /* linger on close if data present */
+#endif
+#ifndef SO_DONTLINGER
 #define SO_DONTLINGER  ((int)(~SO_LINGER))
-#define SO_OOBINLINE   0x0100 /* Unimplemented: leave received OOB data in line */
+#endif
+#ifndef SO_REUSEPORT
 #define SO_REUSEPORT   0x0200 /* Unimplemented: allow local address & port reuse */
-#define SO_SNDBUF      0x1001 /* Unimplemented: send buffer size */
-#define SO_RCVBUF      0x1002 /* receive buffer size */
-#define SO_SNDLOWAT    0x1003 /* Unimplemented: send low-water mark */
-#define SO_RCVLOWAT    0x1004 /* Unimplemented: receive low-water mark */
-#define SO_SNDTIMEO    0x1005 /* send timeout */
-#define SO_RCVTIMEO    0x1006 /* receive timeout */
-#define SO_ERROR       0x1007 /* get error status and clear */
-#define SO_TYPE        0x1008 /* get socket type */
+#endif
+#ifndef SO_CONTIMEO
 #define SO_CONTIMEO    0x1009 /* Unimplemented: connect timeout */
+#endif
+#ifndef SO_NO_CHECK
 #define SO_NO_CHECK    0x100a /* don't create UDP checksum */
+#endif
 
 
-/*
- * Structure used for manipulating linger option.
- */
-struct linger {
-       int l_onoff;                /* option on/off */
-       int l_linger;               /* linger time in seconds */
-};
-
-/*
- * Level number for (get/set)sockopt() to apply to socket itself.
- */
-#define  SOL_SOCKET  0xfff    /* options for socket level */
-
-
-#define AF_UNSPEC       0
-#define AF_INET         2
-#if LWIP_IPV6
-#define AF_INET6        10
-#else /* LWIP_IPV6 */
-#define AF_INET6        AF_UNSPEC
-#endif /* LWIP_IPV6 */
+#ifndef PF_INET
 #define PF_INET         AF_INET
+#endif
+#ifndef PF_INET6
 #define PF_INET6        AF_INET6
+#endif
+#ifndef PF_UNSPEC
 #define PF_UNSPEC       AF_UNSPEC
+#endif
 
 #define IPPROTO_IP      0
 #define IPPROTO_ICMP    1
@@ -232,11 +270,12 @@ struct linger {
 #define IPPROTO_RAW     255
 
 /* Flags we can use with send and recv. */
-#define MSG_PEEK       0x01    /* Peeks at an incoming message */
-#define MSG_WAITALL    0x02    /* Unimplemented: Requests that the function block until the full amount of data requested can be returned */
-#define MSG_OOB        0x04    /* Unimplemented: Requests out-of-band data. The significance and semantics of out-of-band data are protocol-specific */
+#ifndef MSG_DONTWAIT
 #define MSG_DONTWAIT   0x08    /* Nonblocking i/o for this operation only */
+#endif
+#ifndef MSG_MORE
 #define MSG_MORE       0x10    /* Sender will send more */
+#endif
 
 
 /*
@@ -402,12 +441,6 @@ typedef struct ip_mreq {
 #endif
 #ifndef O_WRONLY
 #define O_WRONLY    4
-#endif
-
-#ifndef SHUT_RD
-  #define SHUT_RD   0
-  #define SHUT_WR   1
-  #define SHUT_RDWR 2
 #endif
 
 /* FD_SET used for lwip_select */
