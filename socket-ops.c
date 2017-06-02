@@ -216,6 +216,7 @@ error_t
 lwip_S_socket_connect2 (struct sock_user *user,
 			struct sock_user *sock2)
 {
+  //We don't answer AF_UNIX requests
   return EOPNOTSUPP;
 }
 
@@ -386,6 +387,8 @@ lwip_S_socket_recv (struct sock_user *user,
 	       mach_msg_type_number_t amount)
 {
   error_t err;
+  union { struct sockaddr_storage storage; struct sockaddr sa; } addr;
+  socklen_t addrlen = sizeof(addr);
   int alloced = 0;
   int sockflags;
 
@@ -409,7 +412,8 @@ lwip_S_socket_recv (struct sock_user *user,
   if (sockflags & O_NONBLOCK)
     flags |= MSG_DONTWAIT;
 
-  err = lwip_recv(user->sock->sockno, *data, amount, flags);
+  err = lwip_recvfrom(user->sock->sockno, *data, amount,
+            flags, &addr.sa, &addrlen);
 
   if (err < 0)
   {
@@ -423,7 +427,9 @@ lwip_S_socket_recv (struct sock_user *user,
       munmap (*data + round_page (*datalen),
     round_page (amount) - round_page (*datalen));
 
-    err = make_sockaddr_port(user->sock->sockno, 1, addrport, addrporttype);
+    err = lwip_S_socket_create_address (0, addr.sa.sa_family, (void *)&addr.sa,
+            addr.sa.sa_len, addrport, addrporttype);
+
     if (err && alloced)
       munmap (*data, *datalen);
 
