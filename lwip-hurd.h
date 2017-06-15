@@ -24,7 +24,6 @@
 #include <hurd/ports.h>
 #include <hurd/trivfs.h>
 
-#include <lwip/netif.h>
 #include <lwip/sockets.h>
 
 struct port_bucket *lwip_bucket;
@@ -66,8 +65,6 @@ uid_t lwip_owner;
 
 /* Group of the underlying node.  */
 uid_t lwip_group;
-
-struct netif netif_hurd;
 
 struct socket *sock_alloc (void);
 void sock_release (struct socket *);
