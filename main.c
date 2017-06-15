@@ -18,8 +18,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
-#include <lwip-hurd.h>
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,6 +29,8 @@
 
 #include <lwip_io_S.h>
 #include <lwip_socket_S.h>
+#include <lwip-hurd.h>
+#include <options.h>
 
 #include <lwip/sockets.h>
 #include <lwip/tcpip.h>
@@ -42,6 +42,8 @@
 
 extern boolean_t mighello_server
   (mach_msg_header_t * InHeadP, mach_msg_header_t * OutHeadP);
+
+extern struct argp lwip_argp;
 
 int trivfs_fstype = FSTYPE_MISC;
 int trivfs_fsid = 0;
@@ -60,46 +62,6 @@ trivfs_goaway (struct trivfs_control *fsys, int flags)
 {
   exit (0);
 }
-
-
-/* Parse a single option. */
-static error_t
-parse_opt (int key, char *arg, struct argp_state *state)
-{
-
-  /* Get the input argument from argp_parse, which we
-     know is a pointer to our arguments structure. */
-  switch (key)
-    {
-    case ARGP_KEY_INIT:
-    case ARGP_KEY_SUCCESS:
-    case ARGP_KEY_ERROR:
-      break;
-    case ARGP_KEY_ARG:
-      if (state->arg_num == 0)
-	{
-	  /* First argument */
-	}
-
-      break;
-    case ARGP_KEY_END:
-      /* Done parsing */
-      break;
-    default:
-      return ARGP_ERR_UNKNOWN;
-    }
-
-  return 0;
-}
-
-/* The options we understand. */
-static struct argp_option options[] = {
-  {0}
-};
-
-static struct argp argst = {
-  options, parse_opt, 0, "A translator providing access to LwIP TCP/IP stack."
-};
 
 int
 lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
@@ -154,18 +116,43 @@ lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
   return 0;
 }
 
-void
-add_netif()
+static int
+check_valid_ip_config(struct parse_interface *in)
 {
+  if(in->address == INADDR_NONE)
+    return 0;
+
+  if (in->gateway != INADDR_NONE
+    && (in->gateway & in->netmask) != (in->address & in->netmask))
+    return 0;
+
+  return 1;
+}
+
+void
+init_ifs()
+{
+  struct parse_interface *in;
   ip4_addr_t ipaddr, netmask, gw;
 
-  IP4_ADDR(&gw, 192,168,123,1);
-  IP4_ADDR(&ipaddr, 192,168,123,178);
-  IP4_ADDR(&netmask, 255,255,255,0);
+  for (in = ifs->interfaces; in < ifs->interfaces + ifs->num_interfaces; in++)
+  {
+    if(!check_valid_ip_config(in))
+      continue;
 
-  netif_set_default(netif_add(&netif_hurd, &ipaddr, &netmask, &gw,
-            "/dev/eth1", hurdethif_init, tcpip_input));
-  netif_set_up(&netif_hurd);
+    ipaddr.addr = in->address;
+    netmask.addr = in->netmask;
+    gw.addr = in->gateway;
+
+    //Fifth parameter (in->name) is a hook
+    netif_add(&in->device, &ipaddr, &netmask, &gw,
+            in->name, hurdethif_init, tcpip_input);
+
+    netif_set_up(&in->device);
+
+    if(in->gateway != INADDR_NONE)
+      netif_set_default(&in->device);
+  }
   
   return;
 }
@@ -193,8 +180,9 @@ main (int argc, char **argv)
   if (err)
     error (1, 0, "error creating control port class");
 
-  // Program arguments parsing
-  argp_parse (&argst, argc, argv, 0, 0, 0);
+  /* Parse options.  When successful, this configures the interfaces
+     before returning */
+  argp_parse (&lwip_argp, argc, argv, 0,0,0);
 
   task_get_bootstrap_port (mach_task_self (), &bootstrap);
   if (bootstrap == MACH_PORT_NULL)
@@ -223,7 +211,7 @@ main (int argc, char **argv)
   lwipcntl->hook = (void*)&domain;
   
   //Inititalize LwIP
-  tcpip_init(add_netif, 0);
+  tcpip_init(init_ifs, 0);
 
   ports_manage_port_operations_multithread (lwip_bucket, lwip_demuxer,
 					    30 * 1000, 2 * 60 * 1000, 0);
