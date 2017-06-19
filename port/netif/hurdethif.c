@@ -161,10 +161,10 @@ hurdethif_low_level_init(struct netif *netif)
   size_t count = 2;
   int net_address[2];
   device_t ether_port;
-  
+
   err = hurdethif_device_open(netif);
   LWIP_ASSERT ("err==0", err==0);
-  
+
   //Get the MAC address
   ether_port = ((struct hurdethif*)netif->state)->ether_port;
   LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
@@ -459,11 +459,12 @@ hurdethif_init(struct netif *netif)
 
   LWIP_ASSERT("netif != NULL", (netif != NULL));
 
-  hurdethif = mem_malloc(sizeof(struct hurdethif));
+  hurdethif = malloc(sizeof(struct hurdethif));
   if (hurdethif == NULL) {
     LWIP_DEBUGF(NETIF_DEBUG, ("hurdethif_init: out of memory\n"));
     return ERR_MEM;
   }
+  memset(hurdethif, 0, sizeof(struct hurdethif));
 
 #if LWIP_NETIF_HOSTNAME
   /* Initialize interface hostname */
