@@ -225,12 +225,9 @@ main (int argc, char **argv)
   //Set the domain of this node. FIXME: Get the proper domain
   domain = PF_INET;
   lwipcntl->hook = (void*)&domain;
-  
-  //Inititalize LwIP
-  tcpip_init(init_ifs, 0);
 
   ports_manage_port_operations_multithread (lwip_bucket, lwip_demuxer,
-					    30 * 1000, 2 * 60 * 1000, 0);
+              30 * 1000, 2 * 60 * 1000, 0);
 
   return 0;
 }

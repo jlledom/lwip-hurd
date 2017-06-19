@@ -23,6 +23,9 @@
 #include <stdlib.h>
 #include <argp.h>
 
+#include <lwip-hurd.h>
+#include <lwip/tcpip.h>
+
 /* Adds an empty interface slot to H, and sets H's current interface to it, or
    returns an error. */
 static error_t
@@ -183,7 +186,8 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       break;
 
     case ARGP_KEY_SUCCESS:
-      ifs = h;
+      //Inititalize LwIP
+      tcpip_init(init_ifs, h);
       break;
 
     case ARGP_KEY_ERROR:

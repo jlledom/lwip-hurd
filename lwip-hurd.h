@@ -75,4 +75,6 @@ void clean_socketport (void*);
 struct sock_user *make_sock_user (struct socket*, int, int, int);
 error_t make_sockaddr_port (int, int,mach_port_t*, mach_msg_type_name_t*);
 
+void init_ifs(void *);
+
 #endif
