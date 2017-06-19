@@ -45,6 +45,8 @@ extern boolean_t mighello_server
 
 extern struct argp lwip_argp;
 
+extern struct netif *netif_list;
+
 int trivfs_fstype = FSTYPE_MISC;
 int trivfs_fsid = 0;
 int trivfs_support_read = 0;
@@ -129,12 +131,26 @@ check_valid_ip_config(struct parse_interface *in)
   return 1;
 }
 
+static void
+remove_ifs()
+{
+  while(netif_list != 0)
+    netif_remove(netif_list);
+
+  return;
+}
+
 void
-init_ifs()
+init_ifs(void *arg)
 {
   struct parse_interface *in;
   ip4_addr_t ipaddr, netmask, gw;
+  struct parse_hook *ifs;
 
+  if(netif_list != 0)
+    remove_ifs();
+
+  ifs = (struct parse_hook*) arg;
   for (in = ifs->interfaces; in < ifs->interfaces + ifs->num_interfaces; in++)
   {
     if(!check_valid_ip_config(in))
