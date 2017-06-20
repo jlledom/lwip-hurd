@@ -126,7 +126,7 @@ check_valid_ip_config(struct parse_interface *in)
 
   if (in->gateway != INADDR_NONE
     && (in->gateway & in->netmask) != (in->address & in->netmask))
-    return 0;
+    in->gateway = INADDR_NONE;
 
   return 1;
 }
@@ -146,6 +146,7 @@ init_ifs(void *arg)
   struct parse_interface *in;
   ip4_addr_t ipaddr, netmask, gw;
   struct parse_hook *ifs;
+  int default_set = 0;
 
   if(netif_list != 0)
     remove_ifs();
@@ -166,10 +167,14 @@ init_ifs(void *arg)
 
     netif_set_up(&in->device);
 
-    if(in->gateway != INADDR_NONE)
+    /* Set the first interface with valid gateway as default */
+    if (!default_set && in->gateway != INADDR_NONE)
+    {
       netif_set_default(&in->device);
+      default_set = 1;
+    }
   }
-  
+
   return;
 }
 

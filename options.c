@@ -160,10 +160,6 @@ parse_opt (int opt, char *arg, struct argp_state *state)
     case 'g':
       if (arg)
       {
-        /* Remove any possible other default gateway */
-        for (in = h->interfaces; in < h->interfaces + h->num_interfaces;
-             in++)
-          in->gateway = INADDR_NONE;
         h->curint->gateway = ADDR (arg, "gateway");
       }
       else
