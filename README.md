@@ -13,9 +13,8 @@
 2. lwip.d is not created automatically
 3. The translator crashes when using eth-multiplexer
 4. If a translator register is set, this error raises when booting the system: file_name_lookup /dev/eth1: Computer bought the farm
-5. Memory leak in parse_opt()
-6. Calling setsockopt() chrases the server
-7. Sometimes the translator fails to start
+5. Calling setsockopt() chrases the server
+6. Sometimes the translator fails to start
 
 ## 3. Others
 

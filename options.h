@@ -29,12 +29,17 @@
 #include <lwip/netif.h>
 #include <lwip/sockets.h>
 
+#define DEV_NAME_LEN    256
+#define LWIP_NAME_LEN   2
+
 /* Used to describe a particular interface during argument parsing.  */
 struct parse_interface
 {
   /* The network interface in question.  */
-  struct netif device;
-  char name[256];
+  char dev_name[DEV_NAME_LEN];
+
+  /* The name of the interface for LwIP*/
+  char lwip_name[LWIP_NAME_LEN];
 
   /* New values to apply to it. (IPv4) */
   uint32_t address, netmask, peer, gateway;

@@ -40,7 +40,8 @@ parse_hook_add_interface (struct parse_hook *h)
   h->interfaces = new;
   h->num_interfaces++;
   h->curint = new + h->num_interfaces - 1;
-  memset(&h->curint->device, 0, sizeof(struct netif));
+  memset(&h->curint->dev_name, 0, DEV_NAME_LEN);
+  memset(&h->curint->lwip_name, 0, LWIP_NAME_LEN);
   h->curint->address = INADDR_NONE;
   h->curint->netmask = INADDR_NONE;
   h->curint->peer = INADDR_NONE;
@@ -56,13 +57,9 @@ parse_opt (int opt, char *arg, struct argp_state *state)
   error_t err = 0;
   struct parse_hook *h = state->hook;
 
-  /* Return _ERR from this routine, and in the special case of OPT being
-     ARGP_KEY_SUCCESS, remember to free H first.  */
+  /* Return _ERR from this routine */
 #define RETURN(_err)                          \
-  do { if (opt == ARGP_KEY_SUCCESS)           \
-  { err = (_err); goto free_hook; }          \
-       else                                   \
-  return _err; } while (0)
+  do { return _err; } while (0)
 
   /* Print a parsing error message and (if exiting is turned off) return the
      error code ERR.  */
@@ -98,24 +95,24 @@ parse_opt (int opt, char *arg, struct argp_state *state)
 
       /* First see if a previously specified one is being re-specified.  */
       for (in = h->interfaces; in < h->interfaces + h->num_interfaces; in++)
-        if (strcmp (in->name, arg) == 0)
+        if (strcmp (in->dev_name, arg) == 0)
           /* Re-use an old slot.  */
           {
             h->curint = in;
             return 0;
           }
 
-      if (h->curint->name[0])
+      if (h->curint->dev_name[0])
       /* The current interface slot is not available.  */
       {
         /* Add a new interface entry.  */
         err = parse_hook_add_interface (h);
       }
       in = h->curint;
-      
-      strncpy(in->name, arg, sizeof(h->curint->name));
-      in->device.name[0] = h->num_interfaces / 10 + '0';
-      in->device.name[1] = h->num_interfaces % 10 + '0';
+
+      strncpy(in->dev_name, arg, DEV_NAME_LEN);
+      in->lwip_name[0] = h->num_interfaces / 10 + '0';
+      in->lwip_name[1] = h->num_interfaces % 10 + '0';
       break;
 
     case 'a':
@@ -182,13 +179,12 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       break;
 
     case ARGP_KEY_SUCCESS:
-      //Inititalize LwIP
+      /* Inititalize LwIP */
       tcpip_init(init_ifs, h);
       break;
 
     case ARGP_KEY_ERROR:
       /* Parsing error occurred, free everything. */
-    free_hook:
       free (h->interfaces);
       free (h);
       break;
