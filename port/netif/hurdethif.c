@@ -297,6 +297,8 @@ hurdethif_low_level_input(struct netif *netif, struct net_rcv_msg *msg)
 {
   struct pbuf *p, *q;
   u16_t len;
+  u16_t off;
+  char *buf;
 
   /* Obtain the size of the packet and put it into the "len"
      variable. */
@@ -316,9 +318,19 @@ hurdethif_low_level_input(struct netif *netif, struct net_rcv_msg *msg)
     pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
 #endif
 
+    /* Copy the two parts of the frame into one buffer. */
+    buf = malloc(len);
+    memcpy (buf, msg->header, PBUF_LINK_HLEN);
+    memcpy (buf + PBUF_LINK_HLEN,
+      msg->packet + sizeof (struct packet_header),
+      len - PBUF_LINK_HLEN);
+
     /* We iterate over the pbuf chain until we have read the entire
      * packet into the pbuf. */
-    for (q = p; q != NULL; q = q->next) {
+    q = p;
+    off = 0;
+    do
+    {
       /* Read enough bytes to fill this pbuf in the chain. The
        * available data in the pbuf is given by the q->len
        * variable.
@@ -327,13 +339,17 @@ hurdethif_low_level_input(struct netif *netif, struct net_rcv_msg *msg)
        * actually received size. In this case, ensure the tot_len member of the
        * pbuf is the sum of the chained pbuf len members.
        */
-      memcpy (q->payload, msg->header, PBUF_LINK_HLEN);
-      memcpy (q->payload + PBUF_LINK_HLEN,
-                msg->packet + sizeof (struct packet_header),
-                len - PBUF_LINK_HLEN);
-      q->len = len;
-    }
-    //TODO: acknowledge that packet has been read();
+
+      memcpy (q->payload, buf + off, q->len);
+      off += q->len;
+
+      if (q->tot_len == q->len)
+        break;
+      else
+        q = q->next;
+    } while(1);
+
+    free(buf);
 
     MIB2_STATS_NETIF_ADD(netif, ifinoctets, p->tot_len);
     if (((u8_t*)p->payload)[0] & 1) {
