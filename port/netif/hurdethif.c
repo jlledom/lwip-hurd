@@ -346,9 +346,11 @@ hurdethif_low_level_input(struct netif *netif, struct net_rcv_msg *msg)
       }
       else
         /* The header is copyied yet */
-        memcpy (q->payload + PBUF_LINK_HLEN,
-                msg->packet + sizeof (struct packet_header),
-                q->len);
+        memcpy (q->payload, msg->packet +
+        sizeof (struct packet_header) + off - PBUF_LINK_HLEN,
+            q->len);
+
+      off += q->len;
 
       if (q->tot_len == q->len)
         break;
