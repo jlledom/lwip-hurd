@@ -22,9 +22,12 @@
 
 #include <stdlib.h>
 #include <argp.h>
+#include <argz.h>
 
 #include <lwip-hurd.h>
 #include <lwip/tcpip.h>
+#include <lwip/netif.h>
+#include <netif/hurdethif.h>
 
 /* Adds an empty interface slot to H, and sets H's current interface to it, or
    returns an error. */
@@ -193,6 +196,42 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       return ARGP_ERR_UNKNOWN;
   }
 
+  return err;
+}
+
+error_t
+trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
+{
+  error_t err = 0;
+  struct netif *netif;
+
+#define ADD_OPT(fmt, args...)           \
+  do { char buf[100];                   \
+       if (! err) {                     \
+         snprintf (buf, sizeof buf, fmt , ##args);      \
+         err = argz_add (argz, argz_len, buf); } } while (0)
+#define ADD_ADDR_OPT(name, addr)        \
+  do { struct in_addr i;                \
+       i.s_addr = (addr);               \
+       ADD_OPT ("--%s=%s", name, inet_ntoa (i)); } while (0)
+
+  netif = netif_list;
+  while(netif != 0)
+  {
+    ADD_OPT ("--interface=%s", ((struct hurdethif*)netif->state)->devname);
+    if (netif->ip_addr.u_addr.ip4.addr != INADDR_NONE)
+      ADD_ADDR_OPT ("address", netif->ip_addr.u_addr.ip4.addr);
+    if (netif->netmask.u_addr.ip4.addr != INADDR_NONE)
+      ADD_ADDR_OPT ("netmask", netif->netmask.u_addr.ip4.addr);
+    if (netif->gw.u_addr.ip4.addr != INADDR_NONE)
+      ADD_ADDR_OPT ("gateway", netif->gw.u_addr.ip4.addr);
+
+    netif = netif->next;
+  }
+
+#undef ADD_ADDR_OPT
+
+#undef ADD_OPT
   return err;
 }
 

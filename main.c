@@ -154,13 +154,17 @@ init_ifs(void *arg)
   struct parse_hook *ifs;
   struct netif *netif;
   ip4_addr_t ipaddr, netmask, gw;
-  int default_set = 0;
 
   if(netif_list != 0)
     remove_ifs();
 
+  /*
+   * Go through the list backwards. For LwIP
+   * to create its list in the proper order.
+   */
   ifs = (struct parse_hook*) arg;
-  for (in = ifs->interfaces; in < ifs->interfaces + ifs->num_interfaces; in++)
+  for (in = ifs->interfaces + ifs->num_interfaces - 1;
+        in >= ifs->interfaces; in--)
   {
     if(!check_valid_ip_config(in))
       continue;
@@ -173,18 +177,17 @@ init_ifs(void *arg)
     memset(netif, 0, sizeof(struct netif));
     strncpy(netif->name, in->lwip_name, LWIP_NAME_LEN);
 
-    //Fifth parameter (in->name) is a hook
+    /* Fifth parameter (in->name) is a hook */
     netif_add(netif, &ipaddr, &netmask, &gw,
             in->dev_name, hurdethif_init, tcpip_input);
 
     netif_set_up(netif);
+  }
 
-    /* Set the first interface with valid gateway as default */
-    if (!default_set && in->gateway != INADDR_NONE)
-    {
-      netif_set_default(netif);
-      default_set = 1;
-    }
+  /* Set the first interface with valid gateway as default */
+  if (in->gateway != INADDR_NONE)
+  {
+    netif_set_default(netif);
   }
 
   /* Free the hook */
