@@ -141,6 +141,10 @@ remove_ifs()
   {
     netif = netif_list;
     netif_remove(netif);
+
+    /* Free the interface and its hook */
+    free(((struct hurdethif*)netif->state)->devname);
+    free(netif->state);
     free(netif);
   }
 

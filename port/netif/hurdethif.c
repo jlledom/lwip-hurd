@@ -489,6 +489,13 @@ hurdethif_init(struct netif *netif)
   }
   memset(hurdethif, 0, sizeof(struct hurdethif));
 
+  hurdethif->devname = malloc(strlen(netif->state)+1);
+  if (hurdethif->devname == NULL) {
+    LWIP_DEBUGF(NETIF_DEBUG, ("hurdethif_init: out of memory\n"));
+    return ERR_MEM;
+  }
+  memset(hurdethif->devname, 0, strlen(netif->state)+1);
+
 #if LWIP_NETIF_HOSTNAME
   /* Initialize interface hostname */
   netif->hostname = "lwip";
@@ -501,7 +508,7 @@ hurdethif_init(struct netif *netif)
    */
   MIB2_INIT_NETIF(netif, snmp_ifType_ethernet_csmacd, LINK_SPEED_OF_YOUR_NETIF_IN_BPS);
 
-  hurdethif->devname = netif->state;
+  strncpy(hurdethif->devname, netif->state, strlen(netif->state));
   netif->state = hurdethif;
   netif->name[0] = IFNAME0;
   netif->name[1] = IFNAME1;
