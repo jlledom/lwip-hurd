@@ -186,6 +186,10 @@ init_ifs(void *arg)
             in->dev_name, hurdethif_init, tcpip_input);
 
     netif_set_up(netif);
+
+#if LWIP_IPV6
+    netif_create_ip6_linklocal_address(netif, 1);
+#endif
   }
 
   /* Set the first interface with valid gateway as default */
