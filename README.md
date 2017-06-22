@@ -11,9 +11,11 @@
 
 1. Random packets seem to be lost under congestion
 2. lwip.d is not created automatically
-3. If a translator register is set, this error raises when booting the system: file_name_lookup /dev/eth1: Computer bought the farm
-4. Calling setsockopt() chrases the server
-5. Sometimes the translator fails to start
+3. If a translator register is set, this error raises when booting the system:
+    file_name_lookup /dev/eth1: Computer bought the farm
+4. First active translator set after booting crashes
+5. Calling setsockopt() chrases the server
+6. Sometimes the translator fails to start
 
 ## 3. Others
 
