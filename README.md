@@ -3,9 +3,8 @@
 ## 1. Features to be implemented
 
 1. IPv6 support
-2. IPv6-IPv4 cross-binding
-3. Implement --peer option
-4. Implement other interfaces' operations
+2. Implement --peer option
+3. Implement other interfaces' operations
 
 ## 2. Known bugs
 

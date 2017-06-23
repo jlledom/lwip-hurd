@@ -187,9 +187,7 @@ init_ifs(void *arg)
 
     netif_set_up(netif);
 
-#if LWIP_IPV6
     netif_create_ip6_linklocal_address(netif, 1);
-#endif
   }
 
   /* Set the first interface with valid gateway as default */
@@ -205,28 +203,63 @@ init_ifs(void *arg)
   return;
 }
 
+void
+translator_bind (int portclass, const char *name)
+{
+  struct trivfs_control *cntl;
+  error_t err = 0;
+  mach_port_t right;
+  file_t file = file_name_lookup (name, O_CREAT|O_NOTRANS, 0666);
+
+  if (file == MACH_PORT_NULL)
+    err = errno;
+
+  if (! err) {
+    if (lwip_protid_portclasses[portclass] != MACH_PORT_NULL)
+      error (1, 0, "Cannot bind one protocol to multiple nodes.\n");
+
+    err = trivfs_add_protid_port_class (&lwip_protid_portclasses[portclass]);
+    if (err)
+      error (1, 0, "error creating control port class");
+
+    err = trivfs_add_control_port_class (&lwip_cntl_portclasses[portclass]);
+    if (err)
+      error (1, 0, "error creating control port class");
+
+    err = trivfs_create_control (file, lwip_cntl_portclasses[portclass],
+          lwip_bucket,
+          lwip_protid_portclasses[portclass],
+          lwip_bucket, &cntl);
+  }
+
+  if (! err)
+    {
+      right = ports_get_send_right (cntl);
+      err = file_set_translator (file, 0, FS_TRANS_EXCL | FS_TRANS_SET,
+              0, 0, 0, right, MACH_MSG_TYPE_COPY_SEND);
+      mach_port_deallocate (mach_task_self (), right);
+    }
+
+  if (err)
+    error (1, err, "%s", name);
+
+  ports_port_deref (cntl);
+}
+
 int
 main (int argc, char **argv)
 {
   error_t err;
   struct stat st;
   mach_port_t bootstrap;
-  int domain;
   
   lwip_bucket = ports_create_bucket ();
   addrport_class = ports_create_class (clean_addrport, 0);
   socketport_class = ports_create_class (clean_socketport, 0);
+  lwip_bootstrap_portclass = PORTCLASS_INET;
   
   mach_port_allocate (mach_task_self(),
                           MACH_PORT_RIGHT_RECEIVE, &fsys_identity);
-
-  err = trivfs_add_protid_port_class (&lwip_protid_portclass);
-  if (err)
-    error (1, 0, "error creating control port class");
-
-  err = trivfs_add_control_port_class (&lwip_cntl_portclass);
-  if (err)
-    error (1, 0, "error creating control port class");
 
   /* Parse options.  When successful, this configures the interfaces
      before returning */
@@ -236,9 +269,26 @@ main (int argc, char **argv)
   if (bootstrap == MACH_PORT_NULL)
     error (-1, 0, "Must be started as a translator");
 
+  /* Create portclass to install on the bootstrap port. */
+  if(lwip_protid_portclasses[lwip_bootstrap_portclass] != MACH_PORT_NULL)
+    error(1, 0, "No portclass left to assign to bootstrap port");
+
+  err = trivfs_add_protid_port_class (
+          &lwip_protid_portclasses[lwip_bootstrap_portclass]);
+  if (err)
+    error (1, 0, "error creating control port class");
+
+  err = trivfs_add_control_port_class (
+          &lwip_cntl_portclasses[lwip_bootstrap_portclass]);
+  if (err)
+    error (1, 0, "error creating control port class");
+
   /* Reply to our parent */
-  err = trivfs_startup (bootstrap, 0, lwip_cntl_portclass, lwip_bucket,
-                          lwip_protid_portclass, lwip_bucket, &lwipcntl);
+  err = trivfs_startup (bootstrap, 0,
+            lwip_cntl_portclasses[lwip_bootstrap_portclass],
+            lwip_bucket,
+            lwip_protid_portclasses[lwip_bootstrap_portclass],
+            lwip_bucket, &lwipcntl);
   mach_port_deallocate (mach_task_self (), bootstrap);
   if (err)
   {
@@ -253,10 +303,6 @@ main (int argc, char **argv)
     lwip_owner = st.st_uid;
     lwip_group = st.st_gid;
   }
-
-  //Set the domain of this node. FIXME: Get the proper domain
-  domain = PF_INET;
-  lwipcntl->hook = (void*)&domain;
 
   ports_manage_port_operations_multithread (lwip_bucket, lwip_demuxer,
               30 * 1000, 2 * 60 * 1000, 0);

@@ -37,7 +37,7 @@ lwip_S_socket_create (struct trivfs_protid *master,
   struct sock_user *user;
   struct socket *sock;
   int isroot;
-  int *domain;
+  int domain;
 
   if (!master)
     return EOPNOTSUPP;
@@ -47,13 +47,16 @@ lwip_S_socket_create (struct trivfs_protid *master,
       && sock_type != SOCK_RAW)
     return EPROTOTYPE;
 
-  domain = (int*)master->po->cntl->hook;
+  if (master->pi.class == lwip_protid_portclasses[PORTCLASS_INET])
+    domain = PF_INET;
+  else
+    domain = PF_INET6;
   
   sock = sock_alloc ();
   if (!sock)
     return ENOMEM;
 
-  sock->sockno = lwip_socket (*domain, sock_type, protocol);
+  sock->sockno = lwip_socket (domain, sock_type, protocol);
   if(sock->sockno < 0)
   {
     sock_release(sock);
@@ -232,7 +235,8 @@ lwip_S_socket_create_address (mach_port_t server,
   struct sock_addr *addrstruct;
   const struct sockaddr *const sa = (void *) data;
 
-  if (sockaddr_type != AF_INET && sockaddr_type != AF_UNSPEC)
+  if (sockaddr_type != AF_INET && sockaddr_type != AF_INET6
+      && sockaddr_type != AF_UNSPEC)
     return EAFNOSUPPORT;
   if (sa->sa_family != sockaddr_type
       || data_len < offsetof (struct sockaddr, sa_data))

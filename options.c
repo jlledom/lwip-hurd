@@ -166,6 +166,13 @@ parse_opt (int opt, char *arg, struct argp_state *state)
         h->curint->gateway = INADDR_NONE;
       break;
 
+    case '4':
+      translator_bind (PORTCLASS_INET, arg);
+
+      /* Install IPv6 port class on bootstrap port. */
+      lwip_bootstrap_portclass = PORTCLASS_INET6;
+      break;
+
     case ARGP_KEY_INIT:
       /* Initialize our parsing state.  */
       h = malloc (sizeof (struct parse_hook));

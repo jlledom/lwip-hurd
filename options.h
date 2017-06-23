@@ -65,6 +65,7 @@ static const struct argp_option options[] =
   {"address",   'a', "ADDRESS",  OPTION_ARG_OPTIONAL, "Set the network address"},
   {"netmask",   'm', "MASK",     OPTION_ARG_OPTIONAL, "Set the netmask"},
   {"gateway",   'g', "ADDRESS",  OPTION_ARG_OPTIONAL, "Set the default gateway"},
+  {"ipv4",      '4', "NAME",     0, "Put active IPv4 translator on NAME"},
   {0}
 };
 

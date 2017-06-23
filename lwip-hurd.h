@@ -30,13 +30,22 @@ struct port_bucket *lwip_bucket;
 struct port_class *socketport_class;
 struct port_class *addrport_class;
 
-struct port_class *lwip_protid_portclass;
-struct port_class *lwip_cntl_portclass;
+struct port_class *lwip_protid_portclasses[2];
+struct port_class *lwip_cntl_portclasses[2];
+
+/* Which portclass to install on the bootstrap port, default to IPv4. */
+int lwip_bootstrap_portclass;
 
 mach_port_t fsys_identity;
 
 /* Trivfs control structure for lwip.  */
 struct trivfs_control *lwipcntl;
+
+/* Address family port classes. */
+enum {
+  PORTCLASS_INET,
+  PORTCLASS_INET6,
+};
 
 struct socket
 {
@@ -76,5 +85,8 @@ struct sock_user *make_sock_user (struct socket*, int, int, int);
 error_t make_sockaddr_port (int, int,mach_port_t*, mach_msg_type_name_t*);
 
 void init_ifs(void *);
+
+/* Install portclass on node NAME. */
+void translator_bind (int portclass, const char *name);
 
 #endif
