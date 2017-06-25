@@ -3,8 +3,9 @@
 ## 1. Features to be implemented
 
 1. IPv6 support
-2. Implement --peer option
-3. Implement other interfaces' operations
+2. IPv6 MLD support
+3. Implement --peer option
+4. Implement other interfaces' operations
 
 ## 2. Known bugs
 
