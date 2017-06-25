@@ -187,6 +187,7 @@ init_ifs(void *arg)
 
     netif_set_up(netif);
 
+    netif->ip6_autoconfig_enabled = 1;
     netif_create_ip6_linklocal_address(netif, 1);
   }
 
