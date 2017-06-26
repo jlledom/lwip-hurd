@@ -26,8 +26,8 @@
 #include <sys/types.h>
 #include <argp.h>
 
+#include <lwip/ip.h>
 #include <lwip/netif.h>
-#include <lwip/sockets.h>
 
 #define DEV_NAME_LEN    256
 #define LWIP_NAME_LEN   2
@@ -42,7 +42,7 @@ struct parse_interface
   char lwip_name[LWIP_NAME_LEN];
 
   /* New values to apply to it. (IPv4) */
-  struct ip4_addr address, netmask, peer, gateway;
+  ip4_addr_t address, netmask, peer, gateway;
 };
 
 /* Used to hold data during argument parsing.  */
