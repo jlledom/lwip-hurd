@@ -229,6 +229,7 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
 {
   error_t err = 0;
   struct netif *netif;
+  int i;
 
 #define ADD_OPT(fmt, args...)           \
   do { char buf[100];                   \
@@ -250,6 +251,9 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
       ADD_ADDR_OPT ("netmask", netif->netmask.u_addr.ip4.addr);
     if (netif->gw.u_addr.ip4.addr != INADDR_NONE)
       ADD_ADDR_OPT ("gateway", netif->gw.u_addr.ip4.addr);
+    for(i=0; i < LWIP_IPV6_NUM_ADDRESSES; i++)
+      if (!ip6_addr_isany(&netif->ip6_addr[i].u_addr.ip6))
+        ADD_OPT("--address6=%s", ip6addr_ntoa(&netif->ip6_addr[i].u_addr.ip6));
 
     netif = netif->next;
   }
