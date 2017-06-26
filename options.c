@@ -45,10 +45,10 @@ parse_hook_add_interface (struct parse_hook *h)
   h->curint = new + h->num_interfaces - 1;
   memset(&h->curint->dev_name, 0, DEV_NAME_LEN);
   memset(&h->curint->lwip_name, 0, LWIP_NAME_LEN);
-  h->curint->address = INADDR_NONE;
-  h->curint->netmask = INADDR_NONE;
-  h->curint->peer = INADDR_NONE;
-  h->curint->gateway = INADDR_NONE;
+  h->curint->address.addr = INADDR_NONE;
+  h->curint->netmask.addr = INADDR_NONE;
+  h->curint->peer.addr = INADDR_NONE;
+  h->curint->gateway.addr = INADDR_NONE;
 
   return 0;
 }
@@ -121,12 +121,12 @@ parse_opt (int opt, char *arg, struct argp_state *state)
     case 'a':
       if (arg)
       {
-        h->curint->address = ADDR (arg, "address");
-        if (!IN_CLASSA (ntohl (h->curint->address))
-            && !IN_CLASSB (ntohl (h->curint->address))
-            && !IN_CLASSC (ntohl (h->curint->address)))
+        h->curint->address.addr = ADDR (arg, "address");
+        if (!IN_CLASSA (ntohl (h->curint->address.addr))
+            && !IN_CLASSB (ntohl (h->curint->address.addr))
+            && !IN_CLASSC (ntohl (h->curint->address.addr)))
           {
-            if (IN_MULTICAST (ntohl (h->curint->address)))
+            if (IN_MULTICAST (ntohl (h->curint->address.addr)))
               FAIL (EINVAL, 1, 0,
                     "%s: Cannot set interface address to multicast address",
                      arg);
@@ -137,33 +137,33 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       }
       else
       {
-        h->curint->address = ADDR ("0.0.0.0", "address");
-        h->curint->netmask = ADDR ("255.0.0.0", "netmask");
-        h->curint->gateway = INADDR_NONE;
+        h->curint->address.addr = ADDR ("0.0.0.0", "address");
+        h->curint->netmask.addr = ADDR ("255.0.0.0", "netmask");
+        h->curint->gateway.addr = INADDR_NONE;
       }
       break;
 
     case 'm':
       if (arg)
-        h->curint->netmask = ADDR (arg, "netmask");
+        h->curint->netmask.addr = ADDR (arg, "netmask");
       else
-        h->curint->netmask = INADDR_NONE;
+        h->curint->netmask.addr = INADDR_NONE;
       break;
 
     case 'p':
       if (arg)
-        h->curint->peer = ADDR (arg, "peer");
+        h->curint->peer.addr = ADDR (arg, "peer");
       else
-        h->curint->peer = INADDR_NONE;
+        h->curint->peer.addr = INADDR_NONE;
       break;
 
     case 'g':
       if (arg)
       {
-        h->curint->gateway = ADDR (arg, "gateway");
+        h->curint->gateway.addr = ADDR (arg, "gateway");
       }
       else
-        h->curint->gateway = INADDR_NONE;
+        h->curint->gateway.addr = INADDR_NONE;
       break;
 
     case '4':

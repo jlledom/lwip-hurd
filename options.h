@@ -42,7 +42,7 @@ struct parse_interface
   char lwip_name[LWIP_NAME_LEN];
 
   /* New values to apply to it. (IPv4) */
-  uint32_t address, netmask, peer, gateway;
+  struct ip4_addr address, netmask, peer, gateway;
 };
 
 /* Used to hold data during argument parsing.  */

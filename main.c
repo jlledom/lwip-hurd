@@ -122,12 +122,13 @@ lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
 static int
 check_valid_ip_config(struct parse_interface *in)
 {
-  if(in->address == INADDR_NONE)
+  if(in->address.addr == INADDR_NONE)
     return 0;
 
-  if (in->gateway != INADDR_NONE
-    && (in->gateway & in->netmask) != (in->address & in->netmask))
-    in->gateway = INADDR_NONE;
+  if (in->gateway.addr != INADDR_NONE
+    && (in->gateway.addr & in->netmask.addr)
+      != (in->address.addr & in->netmask.addr))
+    in->gateway.addr = INADDR_NONE;
 
   return 1;
 }
@@ -173,9 +174,9 @@ init_ifs(void *arg)
     if(!check_valid_ip_config(in))
       continue;
 
-    ipaddr.addr = in->address;
-    netmask.addr = in->netmask;
-    gw.addr = in->gateway;
+    ipaddr = in->address;
+    netmask = in->netmask;
+    gw = in->gateway;
 
     netif = malloc(sizeof(struct netif));
     memset(netif, 0, sizeof(struct netif));
@@ -192,7 +193,7 @@ init_ifs(void *arg)
   }
 
   /* Set the first interface with valid gateway as default */
-  if (in->gateway != INADDR_NONE)
+  if (in->gateway.addr != INADDR_NONE)
   {
     netif_set_default(netif);
   }
