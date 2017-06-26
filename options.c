@@ -173,6 +173,24 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       lwip_bootstrap_portclass = PORTCLASS_INET6;
       break;
 
+    case '6':
+      translator_bind (PORTCLASS_INET6, arg);
+      break;
+
+    case 'A':
+      if (arg)
+      {
+        if (ip6addr_aton(arg, &h->curint->address6) <= 0)
+          PERR (EINVAL, "Malformed address");
+
+        if (ip6_addr_ismulticast (&h->curint->address6))
+          FAIL (EINVAL, 1, 0, "%s: Cannot set interface address to "
+          "multicast address", arg);
+      }
+      else
+        ip6_addr_set_zero (&h->curint->address6);
+      break;
+
     case ARGP_KEY_INIT:
       /* Initialize our parsing state.  */
       h = malloc (sizeof (struct parse_hook));

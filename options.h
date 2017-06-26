@@ -43,6 +43,9 @@ struct parse_interface
 
   /* New values to apply to it. (IPv4) */
   ip4_addr_t address, netmask, peer, gateway;
+
+  /* New IPv6 configuration to apply. */
+  ip6_addr_t address6;
 };
 
 /* Used to hold data during argument parsing.  */
@@ -66,6 +69,8 @@ static const struct argp_option options[] =
   {"netmask",   'm', "MASK",     OPTION_ARG_OPTIONAL, "Set the netmask"},
   {"gateway",   'g', "ADDRESS",  OPTION_ARG_OPTIONAL, "Set the default gateway"},
   {"ipv4",      '4', "NAME",     0, "Put active IPv4 translator on NAME"},
+  {"ipv6",      '6', "NAME",     0, "Put active IPv6 translator on NAME"},
+  {"address6",  'A', "ADDR/LEN", OPTION_ARG_OPTIONAL, "Set the global IPv6 address"},
   {0}
 };
 

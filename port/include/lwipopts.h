@@ -45,6 +45,7 @@
 #define LWIP_IPV6_MLD                 0
 #define LWIP_IPV6_SEND_ROUTER_SOLICIT 1
 #define LWIP_IPV6_FORWARD             1
+#define LWIP_IPV6_DUP_DETECT_ATTEMPTS 1
 
 //Debug mode
 #ifdef LWIP_DEBUG

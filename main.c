@@ -158,7 +158,7 @@ init_ifs(void *arg)
   struct parse_interface *in;
   struct parse_hook *ifs;
   struct netif *netif;
-  ip4_addr_t ipaddr, netmask, gw;
+  int8_t ipv6_addr_idx;
 
   if(netif_list != 0)
     remove_ifs();
@@ -174,22 +174,36 @@ init_ifs(void *arg)
     if(!check_valid_ip_config(in))
       continue;
 
-    ipaddr = in->address;
-    netmask = in->netmask;
-    gw = in->gateway;
-
     netif = malloc(sizeof(struct netif));
     memset(netif, 0, sizeof(struct netif));
     strncpy(netif->name, in->lwip_name, LWIP_NAME_LEN);
 
-    /* Fifth parameter (in->name) is a hook */
-    netif_add(netif, &ipaddr, &netmask, &gw,
+    /*
+     * Create a new interface and configre IPv4.
+     *
+     * Fifth parameter (in->name) is a hook.
+     */
+    netif_add(netif, &in->address, &in->netmask, &in->gateway,
             in->dev_name, hurdethif_init, tcpip_input);
 
-    netif_set_up(netif);
-
+    /* Add IPv6 configuration */
     netif->ip6_autoconfig_enabled = 1;
     netif_create_ip6_linklocal_address(netif, 1);
+
+    /* Add user given unicast address */
+    if(!ip6_addr_isany(&in->address6))
+    {
+      netif_add_ip6_address(netif, &in->address6, &ipv6_addr_idx);
+
+      /* First use DAD to make sure nobody else has it */
+      if(ipv6_addr_idx >= 0)
+        netif_ip6_addr_set_state(netif, ipv6_addr_idx, IP6_ADDR_TENTATIVE);
+      else
+        error (1, 0, "No more free slots for new IPv6 addresses");
+    }
+
+    //Up the inerface
+    netif_set_up(netif);
   }
 
   /* Set the first interface with valid gateway as default */
