@@ -2,10 +2,9 @@
 
 ## 1. Features to be implemented
 
-1. IPv6 support
-2. IPv6 MLD support
-3. Implement --peer option
-4. Implement other interfaces' operations
+1. IPv6 MLD support
+2. Implement --peer option
+3. Implement other interfaces' operations
 
 ## 2. Known bugs
 
@@ -15,7 +14,7 @@
     file_name_lookup /dev/eth1: Computer bought the farm
 4. First active translator set after booting crashes
 5. Calling setsockopt() chrases the server
-6. Sometimes the translator fails to start
+6. First active translator set after booting doesn't send gratuitous ARP queries 
 
 ## 3. Others
 
