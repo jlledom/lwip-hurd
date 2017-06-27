@@ -28,6 +28,7 @@
 #include <error.h>
 #include <device/device.h>
 #include <device/net_status.h>
+#include <net/if.h>
 
 #include <lwip/opt.h>
 #include <lwip/def.h>
@@ -160,6 +161,7 @@ hurdethif_low_level_init(struct netif *netif)
   err_t err;
   size_t count = 2;
   int net_address[2];
+  int status;
   device_t ether_port;
 
   err = hurdethif_device_open(netif);
@@ -167,9 +169,9 @@ hurdethif_low_level_init(struct netif *netif)
 
   //Get the MAC address
   ether_port = ((struct hurdethif*)netif->state)->ether_port;
+  err = device_get_status (ether_port, NET_ADDRESS, net_address, &count);
   LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
                   count * sizeof (int) >= ETHARP_HWADDR_LEN);
-  err = device_get_status (ether_port, NET_ADDRESS, net_address, &count);
   if (err)
     error (2, err, "%s: Cannot get hardware Ethernet address",
             ((struct hurdethif*)netif->state)->devname);
@@ -189,6 +191,18 @@ hurdethif_low_level_init(struct netif *netif)
 
   /* maximum transfer unit */
   netif->mtu = 1500;
+
+  /* Enable Ethernet multicasting */
+  count = 1;
+  err = device_get_status (ether_port, NET_FLAGS, &status, &count);
+  if (err)
+    error (2, err, "%s: Cannot get hardware flags",
+            ((struct hurdethif*)netif->state)->devname);
+  status |= IFF_BROADCAST|IFF_MULTICAST|IFF_ALLMULTI;
+  err = device_set_status (ether_port, NET_FLAGS, &status, 1);
+  if (err)
+    error (2, err, "%s: Cannot get hardware flags",
+            ((struct hurdethif*)netif->state)->devname);
 
   /* device capabilities */
   /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
