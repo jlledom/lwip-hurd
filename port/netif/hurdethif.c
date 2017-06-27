@@ -173,7 +173,7 @@ hurdethif_low_level_init(struct netif *netif)
   LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
                   count * sizeof (int) >= ETHARP_HWADDR_LEN);
   if (err)
-    error (2, err, "%s: Cannot get hardware Ethernet address",
+    error (2, err, "%s: Cannot set hardware Ethernet address",
             ((struct hurdethif*)netif->state)->devname);
   net_address[0] = ntohl (net_address[0]);
   net_address[1] = ntohl (net_address[1]);
