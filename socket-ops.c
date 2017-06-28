@@ -99,13 +99,14 @@ lwip_S_socket_listen (struct sock_user *user, int queue_limit)
 
 error_t
 lwip_S_socket_accept (struct sock_user *user,
-		 mach_port_t *new_port,
-		 mach_msg_type_name_t *new_port_type,
-		 mach_port_t *addr_port,
-		 mach_msg_type_name_t *addr_port_type)
+    mach_port_t *new_port,
+    mach_msg_type_name_t *new_port_type,
+    mach_port_t *addr_port,
+    mach_msg_type_name_t *addr_port_type)
 {
   struct sock_user *newuser;
   union { struct sockaddr_storage storage; struct sockaddr sa; } addr = {};
+  socklen_t addr_len;
   error_t err;
   struct socket *sock, *newsock;
 
@@ -114,18 +115,12 @@ lwip_S_socket_accept (struct sock_user *user,
 
   sock = user->sock;
 
-  err = lwip_S_socket_create_address (0, addr.sa.sa_family,
-             (void *) &addr.sa, sizeof addr,
-             addr_port, addr_port_type);
-  if(err)
-    return err;
-
   newsock = sock_alloc ();
   if (!newsock)
     return ENOMEM;
-    
-  newsock->sockno = lwip_accept(
-              sock->sockno, &addr.sa, (socklen_t*)&addr.sa.sa_len);
+
+  addr_len = sizeof(addr);
+  newsock->sockno = lwip_accept(sock->sockno, &addr.sa, &addr_len);
 
   if (newsock->sockno == -1)
   {
@@ -133,11 +128,16 @@ lwip_S_socket_accept (struct sock_user *user,
 	}
   else
   {
-	  newuser = make_sock_user (newsock, user->isroot, 0, 1);
-	  *new_port = ports_get_right (newuser);
-	  *new_port_type = MACH_MSG_TYPE_MAKE_SEND;
-	  ports_port_deref (newuser);
-	}
+    err = lwip_S_socket_create_address (0, addr.sa.sa_family, (void *)&addr.sa,
+            addr.sa.sa_len, addr_port, addr_port_type);
+    if(err)
+      return err;
+
+    newuser = make_sock_user (newsock, user->isroot, 0, 1);
+    *new_port = ports_get_right (newuser);
+    *new_port_type = MACH_MSG_TYPE_MAKE_SEND;
+    ports_port_deref (newuser);
+  }
 
   return errno;
 }
