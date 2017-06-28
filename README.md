@@ -2,9 +2,8 @@
 
 ## 1. Features to be implemented
 
-1. IPv6 MLD support
-2. Implement --peer option
-3. Implement other interfaces' operations
+1. Implement --peer option
+2. Implement other interfaces' operations
 
 ## 2. Known bugs
 
@@ -23,6 +22,8 @@
 3. Found and fix memory leaks
 4. Check for IP address passed to bind() to be actually assigned to an interface
 5. Tune TCP
+6. Filter ethernet multicast incoming frames
+7. Change the list of enabled modules to include only those that are actually being used
 
 ## 4. Extra features to be implemented (not in the proposal)
 
