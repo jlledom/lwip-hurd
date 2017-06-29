@@ -144,8 +144,8 @@ remove_ifs()
     netif_remove(netif);
 
     /* Free the interface and its hook */
-    free(((struct hurdethif*)netif->state)->devname);
-    free(netif->state);
+    mem_free(((struct hurdethif*)netif->state)->devname);
+    mem_free(netif->state);
     free(netif);
   }
 

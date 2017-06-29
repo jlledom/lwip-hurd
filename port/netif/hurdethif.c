@@ -497,14 +497,14 @@ hurdethif_init(struct netif *netif)
 
   LWIP_ASSERT("netif != NULL", (netif != NULL));
 
-  hurdethif = malloc(sizeof(struct hurdethif));
+  hurdethif = mem_malloc(sizeof(struct hurdethif));
   if (hurdethif == NULL) {
     LWIP_DEBUGF(NETIF_DEBUG, ("hurdethif_init: out of memory\n"));
     return ERR_MEM;
   }
   memset(hurdethif, 0, sizeof(struct hurdethif));
 
-  hurdethif->devname = malloc(strlen(netif->state)+1);
+  hurdethif->devname = mem_malloc(strlen(netif->state)+1);
   if (hurdethif->devname == NULL) {
     LWIP_DEBUGF(NETIF_DEBUG, ("hurdethif_init: out of memory\n"));
     return ERR_MEM;

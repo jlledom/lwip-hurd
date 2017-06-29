@@ -11,19 +11,17 @@
 2. lwip.d is not created automatically
 3. If a translator register is set, this error raises when booting the system:
     file_name_lookup /dev/eth1: Computer bought the farm
-4. First active translator set after booting crashes
-5. Calling setsockopt() chrases the server
-6. First active translator set after booting doesn't send gratuitous ARP queries 
+4. Calling setsockopt() chrases the server
+5. First active translator set after booting doesn't send gratuitous ARP queries 
 
 ## 3. Others
 
 1. Add comments
 2. Indent to GNU coding standards
-3. Found and fix memory leaks
-4. Check for IP address passed to bind() to be actually assigned to an interface
-5. Tune TCP
-6. Filter ethernet multicast incoming frames
-7. Change the list of enabled modules to include only those that are actually being used
+3. Check for IP address passed to bind() to be actually assigned to an interface
+4. Tune TCP
+5. Filter ethernet multicast incoming frames
+6. Change the list of enabled modules to include only those that are actually being used
 
 ## 4. Extra features to be implemented (not in the proposal)
 
