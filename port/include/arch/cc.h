@@ -34,8 +34,8 @@
 #include <sys/time.h>
 
 //Use our own <sys/socket.h>
-#define LWIP_SYS_SOCKET 1
 #include <sys/socket.h>
+#include <netinet/in.h>
 
 //We need INT_MAX
 #include <limits.h>
