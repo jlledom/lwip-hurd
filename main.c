@@ -141,12 +141,10 @@ remove_ifs()
   while(netif_list != 0)
   {
     netif = netif_list;
-    netif_remove(netif);
+    netif_remove (netif);
 
-    /* Free the interface and its hook */
-    mem_free(((struct hurdethif*)netif->state)->devname);
-    mem_free(netif->state);
-    free(netif);
+    hurdethif_terminate (netif);
+    free (netif);
   }
 
   return;
@@ -276,6 +274,9 @@ main (int argc, char **argv)
   
   mach_port_allocate (mach_task_self(),
                           MACH_PORT_RIGHT_RECEIVE, &fsys_identity);
+
+  /* Init the input thread */
+  hurdethif_input_init();
 
   /* Parse options.  When successful, this configures the interfaces
      before returning */

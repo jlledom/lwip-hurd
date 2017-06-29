@@ -70,6 +70,13 @@ static struct bpf_insn bpf_ether_filter[] =
 };
 static int bpf_ether_filter_len = sizeof (bpf_ether_filter) / sizeof (short);
 
+/* Bucket and class for the incoming data */
+struct port_bucket *etherport_bucket;
+struct port_class *etherread_class;
+
+/* Thread for the incoming data */
+static pthread_t input_thread;
+
 static err_t
 hurdethif_device_open (struct netif *netif)
 {
@@ -80,12 +87,12 @@ hurdethif_device_open (struct netif *netif)
   LWIP_ASSERT ("hurdethif->ether_port == MACH_PORT_NULL",
                   hurdethif->ether_port == MACH_PORT_NULL);
 
-  err = ports_create_port (etherreadclass, etherport_bucket,
-			   sizeof (struct port_info), &hurdethif->readpt);
+  err = ports_create_port (etherread_class, etherport_bucket,
+        sizeof (struct port_info), &hurdethif->readpt);
   LWIP_ASSERT ("err==0", err==0);
   hurdethif->readptname = ports_get_right (hurdethif->readpt);
   mach_port_insert_right (mach_task_self (), hurdethif->readptname, hurdethif->readptname,
-			  MACH_MSG_TYPE_MAKE_SEND);
+        MACH_MSG_TYPE_MAKE_SEND);
 
   mach_port_set_qlimit (mach_task_self (), hurdethif->readptname, MACH_PORT_QLIMIT_MAX);
 
@@ -467,15 +474,6 @@ hurdethif_demuxer (mach_msg_header_t *inp,
   return 1;
 }
 
-static void *
-hurdethif_input_thread (void *arg)
-{
-  ports_manage_port_operations_one_thread (etherport_bucket,
-					   hurdethif_demuxer,
-					   0);
-  return NULL;
-}
-
 /**
  * Should be called at the beginning of the program to set up the
  * network interface. It calls the function low_level_init() to do the
@@ -491,8 +489,6 @@ hurdethif_input_thread (void *arg)
 err_t
 hurdethif_init(struct netif *netif)
 {
-  err_t err;
-  pthread_t thread;
   struct hurdethif *hurdethif;
 
   LWIP_ASSERT("netif != NULL", (netif != NULL));
@@ -539,19 +535,53 @@ hurdethif_init(struct netif *netif)
 
   hurdethif->ethaddr = (struct eth_addr *)&(netif->hwaddr[0]);
 
+  /* initialize the hardware */
+  return hurdethif_low_level_init(netif);
+}
+
+/*
+ * Release all resources of this netif.
+ *
+ * Returns 0 on success.
+ */
+error_t
+hurdethif_terminate(struct netif *netif)
+{
+  /* Free the interface and its hook */
+  mem_free (((struct hurdethif*)netif->state)->devname);
+  mem_free (netif->state);
+
+  return 0;
+}
+
+static void *
+hurdethif_input_thread (void *arg)
+{
+  ports_manage_port_operations_one_thread (etherport_bucket,
+            hurdethif_demuxer,
+            0);
+
+  return 0;
+}
+
+/*
+ * Init the thread for the incoming data
+ */
+error_t
+hurdethif_input_init()
+{
+  error_t err;
   etherport_bucket = ports_create_bucket ();
-  etherreadclass = ports_create_class (0, 0);
+  etherread_class = ports_create_class (0, 0);
   
-  /* initialize the input */
-  err = pthread_create (&thread, NULL, hurdethif_input_thread, NULL);
+  err = pthread_create (&input_thread, 0, hurdethif_input_thread, 0);
   if (!err)
-    pthread_detach (thread);
+    pthread_detach (input_thread);
   else
   {
     errno = err;
     perror ("pthread_create");
   }
 
-  /* initialize the hardware */
-  return hurdethif_low_level_init(netif);
+  return err;
 }

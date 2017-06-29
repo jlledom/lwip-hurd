@@ -25,9 +25,6 @@
 
 #include <lwip/netif.h>
 
-struct port_bucket *etherport_bucket;
-struct port_class *etherreadclass;
-
 /**
  * Helper struct to hold private data used to operate your ethernet interface.
  * Keeping the ethernet address of the MAC in this struct is not necessary
@@ -42,5 +39,7 @@ struct hurdethif {
 };
 
 err_t hurdethif_init(struct netif *netif);
+err_t hurdethif_terminate(struct netif *netif);
+error_t hurdethif_input_init();
 
 #endif /* LWIP_HURDETHIF_H */
