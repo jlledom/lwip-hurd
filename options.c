@@ -91,6 +91,8 @@ parse_opt (int opt, char *arg, struct argp_state *state)
   switch (opt)
     {
       struct parse_interface *in;
+      uint8_t addr6_prefix_len;
+      char *ptr;
 
     case 'i':
       /* An interface.  */
@@ -180,6 +182,27 @@ parse_opt (int opt, char *arg, struct argp_state *state)
     case 'A':
       if (arg)
       {
+        if ((ptr = strchr (arg, '/')))
+        {
+          addr6_prefix_len = atoi (ptr + 1);
+          if (addr6_prefix_len > 128)
+            FAIL (EINVAL, 1, 0, "%s: The prefix-length is invalid", arg);
+
+          /* Remove the prefix from the address */
+          *ptr = 0;
+
+          if (addr6_prefix_len != 64)
+          {
+            fprintf (stderr, "The only supported value for the prefix-length"
+               " is /64. Defaulting to %s/64.\n", arg);
+          }
+        }
+        else
+        {
+          fprintf (stderr, "No prefix-length given, "
+             "defaulting to %s/64.\n", arg);
+        }
+
         if (ip6addr_aton(arg, &h->curint->address6) <= 0)
           PERR (EINVAL, "Malformed address");
 
@@ -258,7 +281,8 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
       ADD_ADDR_OPT ("gateway", netif->gw.u_addr.ip4.addr);
     for(i=0; i < LWIP_IPV6_NUM_ADDRESSES; i++)
       if (!ip6_addr_isany(&netif->ip6_addr[i].u_addr.ip6))
-        ADD_OPT("--address6=%s", ip6addr_ntoa(&netif->ip6_addr[i].u_addr.ip6));
+        ADD_OPT("--address6=%s/64",
+          ip6addr_ntoa(&netif->ip6_addr[i].u_addr.ip6));
 
     netif = netif->next;
   }
