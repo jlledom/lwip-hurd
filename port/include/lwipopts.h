@@ -41,11 +41,12 @@
 #define LWIP_IPV6   1
 
 /* SLAAC support and other IPv6 stuff*/
-#define LWIP_IPV6_AUTOCONFIG          1
-#define LWIP_IPV6_MLD                 1
-#define LWIP_IPV6_SEND_ROUTER_SOLICIT 1
-#define LWIP_IPV6_FORWARD             1
 #define LWIP_IPV6_DUP_DETECT_ATTEMPTS 1
+#define LWIP_IPV6_SEND_ROUTER_SOLICIT 1
+#define LWIP_IPV6_AUTOCONFIG          1
+#define LWIP_IPV6_FORWARD             1
+#define LWIP_IPV6_MLD                 1
+#define MEMP_NUM_MLD6_GROUP           16
 
 //Debug mode
 #ifdef LWIP_DEBUG
