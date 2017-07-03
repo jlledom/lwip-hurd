@@ -104,4 +104,7 @@
 #define ARP_QUEUEING    1
 #define ARP_QUEUE_LEN   10
 
+/* Available sockets */
+#define MEMP_NUM_NETCONN  32
+
 #endif
