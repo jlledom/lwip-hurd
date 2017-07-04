@@ -202,42 +202,47 @@ lwip_io_select_common (struct sock_user *user,
 		  struct timeval *tv, int *select_type)
 {
   fd_set readset, writeset, exceptset;
+  fd_set *lreadset, *lwriteset, *lexceptset;
   int ret;
   int sock;
-  
+
   if (!user)
     return EOPNOTSUPP;
-    
+
   sock = user->sock->sockno;
-  
+
   FD_ZERO(&readset);
   FD_ZERO(&writeset);
   FD_ZERO(&exceptset);
-  
+  lreadset = lwriteset = lexceptset = 0;
+
   if(*select_type & SELECT_READ)
   {
     FD_SET(sock, &readset);
+    lreadset = &readset;
   }
   if(*select_type & SELECT_WRITE)
   {
     FD_SET(sock, &writeset);
+    lwriteset = &writeset;
   }
   if(*select_type & SELECT_URG)
   {
     FD_SET(sock, &exceptset);
+    lexceptset = &exceptset;
   }
-  
+
   *select_type = 0;
-  
-  ret = lwip_select(sock+1, &readset, &writeset, &exceptset, tv);
+
+  ret = lwip_select(sock+1, lreadset, lwriteset, lexceptset, tv);
   if(ret > 0)
   {
     if(FD_ISSET(sock, &readset))
       *select_type |= SELECT_READ;
-      
+
     if(FD_ISSET(sock, &writeset))
       *select_type |= SELECT_WRITE;
-      
+
     if(FD_ISSET(sock, &exceptset))
       *select_type |= SELECT_URG;
   }
