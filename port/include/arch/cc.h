@@ -21,6 +21,7 @@
 #define LWIP_ARCH_CC_H
 
 #include <stdlib.h> //rand()
+#include <stdio.h> /* printf() */
 
 //Use Glibc's fcntl() macros
 #include <fcntl.h>
@@ -47,6 +48,10 @@
 #define S32_F "d"
 #define U32_F "u"
 #define X32_F "x"
+
+#ifdef LWIP_DEBUG
+#define LWIP_PLATFORM_DIAG(x) do { printf x; fflush(NULL);} while(0)
+#endif
 
 #define LWIP_ERROR(message, expression, handler) \
   do { \
