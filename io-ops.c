@@ -100,6 +100,7 @@ lwip_S_io_read (struct sock_user *user,
     if (alloced && round_page (*datalen) < round_page (amount))
       munmap (*data + round_page (*datalen),
     round_page (amount) - round_page (*datalen));
+    errno = 0;
   }
   
   return errno;
