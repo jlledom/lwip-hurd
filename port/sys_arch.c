@@ -413,8 +413,8 @@ cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
   int ret;
 
   if (timeout == 0) {
-    pthread_cond_wait(cond, mutex);
-    return 0;
+    ret = pthread_hurd_cond_wait_np(cond, mutex);
+    return ret;
   }
 
   /* Get a timestamp and add the timeout value. */
@@ -422,7 +422,7 @@ cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
 #if defined(LWIP_UNIX_MACH) || (defined(LWIP_UNIX_ANDROID) && __ANDROID_API__ < 21)
   ts.tv_sec = timeout / 1000L;
   ts.tv_nsec = (timeout % 1000L) * 1000000L;
-  ret = pthread_cond_timedwait_relative_np(cond, mutex, &ts);
+  ret = pthread_hurd_cond_timedwait_relative_np(cond, mutex, &ts);
 #else
   ts.tv_sec = rtime1.tv_sec + timeout / 1000L;
   ts.tv_nsec = rtime1.tv_nsec + (timeout % 1000L) * 1000000L;
@@ -431,7 +431,7 @@ cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
     ts.tv_nsec -= 1000000000L;
   }
 
-  ret = pthread_cond_timedwait(cond, mutex, &ts);
+  ret = pthread_hurd_cond_timedwait_np(cond, mutex, &ts);
 #endif
   if (ret == ETIMEDOUT) {
     return SYS_ARCH_TIMEOUT;
@@ -468,7 +468,9 @@ sys_arch_sem_wait(struct sys_sem **s, u32_t timeout)
       /*      pthread_mutex_unlock(&(sem->mutex));
               return time_needed; */
     } else {
-      cond_wait(&(sem->cond), &(sem->mutex), 0);
+      if(cond_wait(&(sem->cond), &(sem->mutex), 0))
+        /* This means we were interrupted, so don't wait again */
+        break;
     }
   }
   sem->c--;

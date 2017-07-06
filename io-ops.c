@@ -209,6 +209,8 @@ lwip_io_select_common (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
+  ports_interrupt_self_on_notification (user, reply, MACH_NOTIFY_DEAD_NAME);
+
   sock = user->sock->sockno;
 
   FD_ZERO(&readset);

@@ -4,6 +4,7 @@
 
 1. Implement --peer option
 2. Implement other interfaces' operations
+3. Enable pending socket options
 
 ## 2. Known bugs
 
@@ -11,8 +12,7 @@
 2. lwip.d is not created automatically
 3. If a translator register is set, this error raises when booting the system:
     file_name_lookup /dev/eth1: Computer bought the farm
-4. Calling setsockopt() chrases the server
-5. First active translator set after booting doesn't send gratuitous ARP queries 
+4. First active translator set after booting doesn't send gratuitous ARP queries 
 
 ## 3. Others
 
