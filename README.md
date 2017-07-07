@@ -19,8 +19,6 @@
 2. Indent to GNU coding standards
 3. Check for IP address passed to bind() to be actually assigned to an interface
 4. Tune TCP
-5. Filter ethernet multicast incoming frames
-6. Change the list of enabled modules to include only those that are actually being used
 
 ## 4. Extra features to be implemented (not in the proposal)
 
