@@ -35,6 +35,9 @@
 //Only send complete packets to the device
 #define LWIP_NETIF_TX_SINGLE_PBUF 1
 
+/* Don't create a loopback interface. Use the other interfaces */
+#define LWIP_HAVE_LOOPIF  0
+
 /* Randomize local ports */
 #define LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS  1
 
@@ -67,7 +70,7 @@
 #define SO_REUSE                    1
 #define LWIP_MULTICAST_TX_OPTIONS   1
 
-//Enable modules
+/* Enable modules */
 #define LWIP_ARP              1
 #define LWIP_ETHERNET         1
 #define LWIP_IPV4             1
@@ -80,6 +83,7 @@
 #define LWIP_IPV6             1
 #define LWIP_ICMP6            1
 #define LWIP_IPV6_MLD         1
+#define LWIP_NETIF_LOOPBACK   1
 
 /* Debug mode */
 #ifdef LWIP_DEBUG
