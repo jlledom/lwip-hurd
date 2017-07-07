@@ -48,10 +48,13 @@
 #define ARP_QUEUEING    1
 #define ARP_QUEUE_LEN   10
 
+/* Netif API is needed to add or remove interfaces on run time */
+#define LWIP_NETIF_API  1
+
 /* IPv4 stuff */
 #define IP_FORWARD  1
 
-/* SLAAC support and other IPv6 stuff*/
+/* SLAAC support and other IPv6 stuff */
 #define LWIP_IPV6_DUP_DETECT_ATTEMPTS 1
 #define LWIP_IPV6_SEND_ROUTER_SOLICIT 1
 #define LWIP_IPV6_AUTOCONFIG          1

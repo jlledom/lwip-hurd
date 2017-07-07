@@ -34,7 +34,7 @@
 
 #include <lwip/sockets.h>
 #include <lwip/tcpip.h>
-#include <lwip/netif.h>
+#include <lwip/netifapi.h>
 #include <netif/hurdethif.h>
 
 #ifndef _GNU_SOURCE
@@ -141,7 +141,7 @@ remove_ifs()
   while(netif_list != 0)
   {
     netif = netif_list;
-    netif_remove (netif);
+    netifapi_netif_remove (netif);
 
     hurdethif_terminate (netif);
     free (netif);
@@ -181,7 +181,7 @@ init_ifs(void *arg)
      *
      * Fifth parameter (in->name) is a hook.
      */
-    netif_add(netif, &in->address, &in->netmask, &in->gateway,
+    netifapi_netif_add(netif, &in->address, &in->netmask, &in->gateway,
             in->dev_name, hurdethif_init, tcpip_input);
 
     /* Add IPv6 configuration */
@@ -201,13 +201,13 @@ init_ifs(void *arg)
     }
 
     //Up the inerface
-    netif_set_up(netif);
+    netifapi_netif_set_up(netif);
   }
 
   /* Set the first interface with valid gateway as default */
   if (in->gateway.addr != INADDR_NONE)
   {
-    netif_set_default(netif);
+    netifapi_netif_set_default(netif);
   }
 
   /* Free the hook */

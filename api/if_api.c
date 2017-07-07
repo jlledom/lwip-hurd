@@ -48,6 +48,24 @@
 #include "lwip/netifapi.h"
 #include "lwip/priv/sockets_priv.h"
 
+err_t
+netifapi_netif_index_to_name(u8_t idx, const char *ifname)
+{
+  LWIP_UNUSED_ARG(idx);
+  LWIP_UNUSED_ARG(ifname);
+
+  return 0;
+}
+
+err_t
+netifapi_netif_name_to_index(const char *ifname, u8_t *idx)
+{
+  LWIP_UNUSED_ARG(ifname);
+  LWIP_UNUSED_ARG(idx);
+
+  return 0;
+}
+
 /**
  * @ingroup if_api
  * Maps an interface index to its corresponding name.
