@@ -4,7 +4,6 @@
 
 1. Implement --peer option
 2. Implement other interfaces' operations
-3. Enable pending socket options
 
 ## 2. Known bugs
 

@@ -91,11 +91,13 @@
 //Enable/Disable checksum generation for each netif
 #define LWIP_CHECKSUM_CTRL_PER_NETIF  1
 
-//Enable SO_RCVBUF and FIONREAD command for ioctl()
-#define LWIP_SO_RCVBUF  1
-
-/* Enable SO_REUSEADDR option for setsockopt() */
-#define SO_REUSE        1
+/* Enable all socket operations */
+#define LWIP_SO_SNDTIMEO            1
+#define LWIP_SO_RCVTIMEO            1
+#define LWIP_SO_RCVBUF              1
+#define LWIP_SO_LINGER              1
+#define SO_REUSE                    1
+#define LWIP_MULTICAST_TX_OPTIONS   1
 
 //Only send complete packets to the device
 #define LWIP_NETIF_TX_SINGLE_PBUF 1
