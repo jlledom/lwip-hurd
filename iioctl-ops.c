@@ -21,6 +21,29 @@
 #include <lwip_iioctl_S.h>
 
 #include <lwip-hurd.h>
+#include <netif/hurdethif.h>
+#include <lwip/sockets.h>
+
+/* Get the interface from its name */
+struct netif *get_if (char *name)
+{
+  char ifname[16];
+  struct netif *netif;
+
+  memcpy (ifname, name, IFNAMSIZ-1);
+  ifname[IFNAMSIZ-1] = 0;
+
+  netif = netif_list;
+  while(netif != 0)
+  {
+    if (strcmp (((struct hurdethif *)netif->state)->devname, ifname) == 0)
+      break;
+
+    netif = netif->next;
+  }
+
+  return netif;
+}
 
 enum siocgif_type
 {
@@ -46,7 +69,49 @@ siocgifXaddr (struct sock_user *user,
         sockaddr_t *addr,
         enum siocgif_type type)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct sockaddr_in *sin = (struct sockaddr_in *) addr;
+  size_t buflen = sizeof(struct sockaddr);
+  struct netif *netif;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  netif = get_if (ifnam);
+  if (!netif)
+    return ENODEV;
+
+  err = lwip_getsockname(user->sock->sockno, addr, (socklen_t*)&buflen);
+  if(err)
+    return err;
+
+  if (sin->sin_family != AF_INET)
+    err = EINVAL;
+  else
+    {
+      switch(type)
+      {
+        case ADDR:
+          sin->sin_addr.s_addr = netif->ip_addr.u_addr.ip4.addr;
+          break;
+        case NETMASK:
+          sin->sin_addr.s_addr = netif->netmask.u_addr.ip4.addr;
+          break;
+        case DSTADDR:
+          err = EOPNOTSUPP;
+          break;
+        case BRDADDR:
+          sin->sin_addr.s_addr =
+              netif->ip_addr.u_addr.ip4.addr & netif->netmask.u_addr.ip4.addr;
+          sin->sin_addr.s_addr |= ~netif->netmask.u_addr.ip4.addr;
+          break;
+        default:
+          err = EINVAL;
+          break;
+      }
+    }
+
+  return err;
 }
 
 #define SIOCSIF(name, type)						\
