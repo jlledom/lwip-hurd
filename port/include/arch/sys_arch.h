@@ -55,5 +55,7 @@ typedef struct sys_mbox * sys_mbox_t;
 struct sys_thread;
 typedef struct sys_thread * sys_thread_t;
 
+u32_t sys_arch_sem_wait_intr(sys_sem_t *sem, u32_t timeout);
+
 #endif /* LWIP_ARCH_SYS_ARCH_H */
 

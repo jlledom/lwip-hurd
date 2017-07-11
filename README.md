@@ -12,9 +12,7 @@
 3. If a translator register is set, this error raises when booting the system:
     file_name_lookup /dev/eth1: Computer bought the farm
 4. First active translator set after booting doesn't send gratuitous ARP queries
-5. Assertion "state!" failed at line 1244 in ../../hurd/lwip/api/api_msg.c when
-    aborting a connection attempt.
-6. Assertion "should not be null since first != last!" failed at line 948
+5. Assertion "should not be null since first != last!" failed at line 948
     in ../../hurd/lwip/core/netif.c when removing an interface that has open
     connections.
 
