@@ -78,6 +78,37 @@ struct port_class *etherread_class;
 static pthread_t input_thread;
 
 static err_t
+hurdethif_device_set_flags(struct netif *netif, int flags)
+{
+  err_t err;
+  size_t count;
+  struct net_status status;
+  struct hurdethif *hurdethif;
+
+  hurdethif = netif->state;
+  count = NET_STATUS_COUNT;
+  err = device_get_status (hurdethif->ether_port, NET_STATUS,
+                            (dev_status_t)&status, &count);
+  if (err)
+    error (2, err, "%s: Cannot get hardware flags", hurdethif->devname);
+
+  status.flags |= flags;
+
+  err = device_set_status (hurdethif->ether_port, NET_FLAGS, &status.flags, 1);
+  if(err == D_INVALID_OPERATION)
+    /*
+     * eth-multiplexer doesn't support setting flags.
+     * We must ignore D_INVALID_OPERATION.
+     */
+    fprintf(stderr, "%s: hardware doesn't support flags. IPv6 won't work.\n",
+              hurdethif->devname);
+  else if (err)
+    error (2, err, "%s: Cannot set hardware flags", hurdethif->devname);
+
+  return err;
+}
+
+static err_t
 hurdethif_device_open (struct netif *netif)
 {
   err_t err;
@@ -168,7 +199,6 @@ hurdethif_low_level_init(struct netif *netif)
   err_t err;
   size_t count = 2;
   int net_address[2];
-  int status;
   device_t ether_port;
 
   err = hurdethif_device_open(netif);
@@ -200,16 +230,7 @@ hurdethif_low_level_init(struct netif *netif)
   netif->mtu = 1500;
 
   /* Enable Ethernet multicasting */
-  count = 1;
-  err = device_get_status (ether_port, NET_FLAGS, &status, &count);
-  if (err)
-    error (2, err, "%s: Cannot get hardware flags",
-            ((struct hurdethif*)netif->state)->devname);
-  status |= IFF_BROADCAST | IFF_ALLMULTI;
-  err = device_set_status (ether_port, NET_FLAGS, &status, 1);
-  if (err)
-    error (2, err, "%s: Cannot get hardware flags",
-            ((struct hurdethif*)netif->state)->devname);
+  hurdethif_device_set_flags(netif, IFF_BROADCAST|IFF_ALLMULTI);
 
   /* device capabilities */
   /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
