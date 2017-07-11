@@ -21,10 +21,9 @@
 #ifndef LWIP_HURD_H
 #define LWIP_HURD_H
 
+#include <sys/socket.h>
 #include <hurd/ports.h>
 #include <hurd/trivfs.h>
-
-#include <lwip/sockets.h>
 
 struct port_bucket *lwip_bucket;
 struct port_class *socketport_class;

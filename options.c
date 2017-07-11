@@ -23,6 +23,9 @@
 #include <stdlib.h>
 #include <argp.h>
 #include <argz.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <lwip-hurd.h>
 #include <lwip/tcpip.h>

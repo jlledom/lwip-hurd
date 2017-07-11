@@ -23,9 +23,9 @@ PORTDIR = $(srcdir)/port
 
 include $(srcdir)/Filelists.mk
 
-SRCS		= main.c io-ops.c socket-ops.c misc.c options.c
+SRCS		= main.c io-ops.c socket-ops.c iioctl-ops.c misc.c options.c
 ARCHSRCS	= sys_arch.c sio.c hurdethif.c
-MIGSRCS		= ioServer.c socketServer.c
+MIGSRCS		= ioServer.c socketServer.c iioctlServer.c
 OBJS		= $(patsubst %.S,%.o,$(patsubst %.c,%.o,\
 				$(SRCS) $(MIGSRCS) $(LWIPALLFILES) $(ARCHSRCS)))
 
@@ -53,6 +53,7 @@ MIGCOMSFLAGS += -prefix lwip_
 mig-sheader-prefix = lwip_
 io-MIGSFLAGS = -imacros $(srcdir)/mig-mutate.h
 socket-MIGSFLAGS = -imacros $(srcdir)/mig-mutate.h
+iioctl-MIGSFLAGS = -imacros $(srcdir)/mig-mutate.h
 
 # cpp doesn't automatically make dependencies for -imacros dependencies. argh.
 lwip_io_S.h ioServer.c lwip_socket_S.h socketServer.c: mig-mutate.h
