@@ -168,14 +168,15 @@ inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,
       }
 
     if(addr6_prefix_len)
-      *addr6_prefix_len = 64;
+      for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
+        *(addr6_prefix_len + i) = 64;
   }
 }
 
 error_t
 configure_device (struct netif *netif, uint32_t addr, uint32_t netmask,
                   uint32_t peer, uint32_t broadcast, uint32_t gateway,
-                  uint32_t *addr6, uint8_t addr6_prefix_len)
+                  uint32_t *addr6, uint8_t *addr6_prefix_len)
 {
   error_t err = 0;
 

@@ -265,7 +265,7 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
   int i;
   uint32_t addr, netmask, gateway;
   uint32_t addr6[LWIP_IPV6_NUM_ADDRESSES][4];
-  uint8_t addr6_prefix_len;
+  uint8_t addr6_prefix_len[LWIP_IPV6_NUM_ADDRESSES];
 
 #define ADD_OPT(fmt, args...)           \
   do { char buf[100];                   \
@@ -281,7 +281,7 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
   while(netif != 0)
   {
     inquire_device(netif, &addr, &netmask, 0, 0, &gateway,
-                    (uint32_t *)addr6, &addr6_prefix_len);
+                    (uint32_t *)addr6, addr6_prefix_len);
 
     ADD_OPT ("--interface=%s", ((struct hurdethif*)netif->state)->devname);
     if (addr != INADDR_NONE)
@@ -292,7 +292,8 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
       ADD_ADDR_OPT ("gateway", gateway);
     for(i=0; i < LWIP_IPV6_NUM_ADDRESSES; i++)
       if (!ip6_addr_isany(((ip6_addr_t *)&addr6[i])))
-        ADD_OPT("--address6=%s/%d", ip6addr_ntoa(((ip6_addr_t *)&addr6[i])), addr6_prefix_len);
+        ADD_OPT("--address6=%s/%d",
+                ip6addr_ntoa(((ip6_addr_t *)&addr6[i])), addr6_prefix_len[i]);
 
     netif = netif->next;
   }
