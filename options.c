@@ -27,9 +27,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <lwip-hurd.h>
 #include <lwip/tcpip.h>
 #include <lwip/netif.h>
+
+#include <lwip-hurd.h>
+#include <lwip-util.h>
 #include <netif/hurdethif.h>
 
 /* Adds an empty interface slot to H, and sets H's current interface to it, or

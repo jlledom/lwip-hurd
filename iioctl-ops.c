@@ -20,9 +20,10 @@
 
 #include <lwip_iioctl_S.h>
 
+#include <lwip/sockets.h>
+
 #include <lwip-hurd.h>
 #include <netif/hurdethif.h>
-#include <lwip/sockets.h>
 
 /* Get the interface from its name */
 struct netif *get_if (char *name)

@@ -23,7 +23,8 @@ PORTDIR = $(srcdir)/port
 
 include $(srcdir)/Filelists.mk
 
-SRCS		= main.c io-ops.c socket-ops.c iioctl-ops.c port-objs.c options.c
+SRCS		= main.c io-ops.c socket-ops.c iioctl-ops.c port-objs.c \
+						options.c lwip-util.c
 ARCHSRCS	= sys_arch.c sio.c hurdethif.c
 MIGSRCS		= ioServer.c socketServer.c iioctlServer.c
 OBJS		= $(patsubst %.S,%.o,$(patsubst %.c,%.o,\
