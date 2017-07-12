@@ -128,7 +128,56 @@ init_ifs(void *arg)
   return;
 }
 
-void
+static void
 update_if(struct netif *netif)
 {
+}
+
+void
+inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,
+                uint32_t *peer, uint32_t *broadcast, uint32_t *gateway,
+                uint32_t *addr6, uint8_t *addr6_prefix_len)
+{
+  int i;
+
+  if(netif)
+  {
+    if(addr)
+      *addr = netif->ip_addr.u_addr.ip4.addr;
+
+    if(netmask)
+      *netmask = netif->netmask.u_addr.ip4.addr;
+
+    if(peer)
+      *peer = INADDR_NONE;
+
+    if(broadcast)
+      *broadcast =
+          netif->ip_addr.u_addr.ip4.addr | ~netif->netmask.u_addr.ip4.addr;
+
+    if(gateway)
+      *gateway = netif->gw.u_addr.ip4.addr;
+
+    if(addr6)
+      for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
+      {
+        *(addr6 + i*4 + 0) = netif->ip6_addr[i].u_addr.ip6.addr[0];
+        *(addr6 + i*4 + 1) = netif->ip6_addr[i].u_addr.ip6.addr[1];
+        *(addr6 + i*4 + 2) = netif->ip6_addr[i].u_addr.ip6.addr[2];
+        *(addr6 + i*4 + 3) = netif->ip6_addr[i].u_addr.ip6.addr[3];
+      }
+
+    if(addr6_prefix_len)
+      *addr6_prefix_len = 64;
+  }
+}
+
+error_t
+configure_device (struct netif *netif, uint32_t addr, uint32_t netmask,
+                  uint32_t peer, uint32_t broadcast, uint32_t gateway,
+                  uint32_t *addr6, uint8_t addr6_prefix_len)
+{
+  error_t err = 0;
+
+  return err;
 }
