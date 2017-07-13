@@ -150,9 +150,62 @@ init_ifs(void *arg)
   return;
 }
 
-static void
-update_if(struct netif *netif)
+static error_t
+update_if(struct netif *netif, uint32_t addr, uint32_t netmask, uint32_t peer,
+            uint32_t broadcast, uint32_t gateway, uint32_t *addr6,
+            uint8_t *addr6_prefix_len)
 {
+  error_t err;
+  uint8_t was_default;
+  int8_t ipv6_addr_idx;
+  char dev_name[DEV_NAME_LEN];
+  int i;
+
+  err = 0;
+  was_default = netif == netif_default;
+  strncpy(dev_name, ((struct hurdethif*)netif->state)->devname, DEV_NAME_LEN);
+
+  /* Remove the previous interface */
+  netifapi_netif_remove (netif);
+  hurdethif_terminate (netif);
+  free (netif);
+
+  /* Add a new one with the new configuration */
+  netif = malloc(sizeof(struct netif));
+  memset(netif, 0, sizeof(struct netif));
+
+  netifapi_netif_add(netif, (ip4_addr_t*)&addr, (ip4_addr_t*)&netmask,
+                      (ip4_addr_t*)&gateway, dev_name,
+                      hurdethif_init, tcpip_input);
+
+  netif->ip6_autoconfig_enabled = 1;
+  netif_create_ip6_linklocal_address(netif, 1);
+
+  if(addr6)
+    for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
+    {
+      ip6_addr_t *laddr6 = ((ip6_addr_t *)addr6 + i*4);
+      if(!ip6_addr_isany(laddr6) && !ip6_addr_islinklocal(laddr6))
+      {
+        netif_add_ip6_address(netif, laddr6, &ipv6_addr_idx);
+
+        if(ipv6_addr_idx >= 0)
+          netif_ip6_addr_set_state(netif, ipv6_addr_idx, IP6_ADDR_TENTATIVE);
+      }
+    }
+
+  if(addr6_prefix_len)
+    for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
+      *(addr6_prefix_len + i) = 64;
+
+  netifapi_netif_set_up(netif);
+
+  if (was_default)
+  {
+    netifapi_netif_set_default(netif);
+  }
+
+  return err;
 }
 
 void
@@ -201,6 +254,21 @@ configure_device (struct netif *netif, uint32_t addr, uint32_t netmask,
                   uint32_t *addr6, uint8_t *addr6_prefix_len)
 {
   error_t err = 0;
+
+  if(netmask != INADDR_NONE)
+    /*
+     * If broadcasting is enabled and we have a netmask lesser than 31 bits
+     * long, we need to update the broadcast address too.
+     */
+    if((netif->flags & NETIF_FLAG_BROADCAST)
+        && ip4_addr_netmask_valid(netmask) && netmask <= 0xfffffffc)
+      broadcast = (addr | ~netmask);
+
+  if(!ipv4config_is_valid(addr, netmask, gateway, broadcast))
+    err = EINVAL;
+  else
+    err = update_if(netif, addr, netmask, peer, broadcast,
+                    gateway, addr6, addr6_prefix_len);
 
   return err;
 }
