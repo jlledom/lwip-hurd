@@ -31,15 +31,36 @@
 #include <netif/hurdethif.h>
 
 static int
-check_valid_ip_config(struct parse_interface *in)
+ipv4config_is_valid(uint32_t addr, uint32_t netmask,
+                        uint32_t gateway, uint32_t broadcast)
 {
-  if(in->address.addr == INADDR_NONE)
+  /* Check whether the user provided a valid netmask*/
+  if (netmask != INADDR_NONE && !ip4_addr_netmask_valid(netmask))
+  {
+    fprintf(stderr, "Error: Invalid network mask.\n");
     return 0;
+  }
 
-  if (in->gateway.addr != INADDR_NONE
-    && (in->gateway.addr & in->netmask.addr)
-      != (in->address.addr & in->netmask.addr))
-    in->gateway.addr = INADDR_NONE;
+  /* The given gateway, if any, must be in the same network as the address */
+  if (gateway != INADDR_NONE
+      && (gateway & netmask) != (addr & netmask))
+  {
+    fprintf(stderr, "Error: the gateway is not in the same network as the address.\n");
+    return 0;
+  }
+
+  /*
+   * LwIP doesn't allow setting the broadcast address.
+   * We must ensure the given broadcast address is the default one for this
+   * network.
+   */
+  if(broadcast != INADDR_NONE
+      && netmask != INADDR_NONE
+      && broadcast != (addr | ~netmask))
+  {
+    fprintf(stderr, "Error: the broadcast address doesn't match the network mask.\n");
+    return 0;
+  }
 
   return 1;
 }
@@ -80,7 +101,8 @@ init_ifs(void *arg)
   for (in = ifs->interfaces + ifs->num_interfaces - 1;
         in >= ifs->interfaces; in--)
   {
-    if(!check_valid_ip_config(in))
+    if(!ipv4config_is_valid(in->address.addr, in->netmask.addr,
+                              in->gateway.addr, INADDR_NONE))
       continue;
 
     netif = malloc(sizeof(struct netif));
