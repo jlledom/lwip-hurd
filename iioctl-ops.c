@@ -118,7 +118,47 @@ siocsifXaddr (struct sock_user *user,
         sockaddr_t *addr,
         enum siocgif_type type)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct sockaddr_in sin;
+  size_t buflen = sizeof(struct sockaddr_in);
+  struct netif *netif;
+  uint32_t ipv4_addrs[5];
+  uint32_t ipv6_addrs[LWIP_IPV6_NUM_ADDRESSES][4];
+  uint8_t addr6_prefix_len[LWIP_IPV6_NUM_ADDRESSES];
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  if (!user->isroot)
+    return EPERM;
+
+  netif = get_if (ifnam);
+
+  if (!netif)
+    return ENODEV;
+
+  if(type == DSTADDR || type == BRDADDR)
+    return EOPNOTSUPP;
+
+  err = lwip_getsockname(user->sock->sockno,
+                          (sockaddr_t*)&sin, (socklen_t*)&buflen);
+  if(err)
+    return err;
+
+  if (sin.sin_family != AF_INET)
+    err = EINVAL;
+  else
+  {
+    inquire_device (netif, &ipv4_addrs[0], &ipv4_addrs[1],
+                      &ipv4_addrs[2], &ipv4_addrs[3], &ipv4_addrs[4],
+                      (uint32_t *)ipv6_addrs, addr6_prefix_len);
+    ipv4_addrs[type] = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
+    err = configure_device (netif, ipv4_addrs[0], ipv4_addrs[1],
+                      ipv4_addrs[2], ipv4_addrs[3], ipv4_addrs[4],
+                      (uint32_t *)ipv6_addrs, addr6_prefix_len);
+  }
+
+  return err;
 }
 
 /* 12 SIOCSIFADDR -- Set address of a network interface.  */
