@@ -184,8 +184,8 @@ update_if(struct netif *netif, uint32_t addr, uint32_t netmask, uint32_t peer,
   if(addr6)
     for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
     {
-      ip6_addr_t *laddr6 = ((ip6_addr_t *)addr6 + i*4);
-      if(!ip6_addr_isany(laddr6) && !ip6_addr_islinklocal(laddr6))
+      ip6_addr_t *laddr6 = ((ip6_addr_t *)addr6 + i);
+      if(!ip6_addr_isany(laddr6))
       {
         netif_add_ip6_address(netif, laddr6, &ipv6_addr_idx);
 
