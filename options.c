@@ -39,6 +39,8 @@
 static error_t
 parse_hook_add_interface (struct parse_hook *h)
 {
+  int i;
+
   struct parse_interface *new =
     realloc (h->interfaces,
       (h->num_interfaces + 1) * sizeof (struct parse_interface));
@@ -54,6 +56,8 @@ parse_hook_add_interface (struct parse_hook *h)
   h->curint->netmask.addr = INADDR_NONE;
   h->curint->peer.addr = INADDR_NONE;
   h->curint->gateway.addr = INADDR_NONE;
+  for(i=0; i<LWIP_IPV6_NUM_ADDRESSES; i++)
+    ip6_addr_set_zero((ip6_addr_t *)&h->curint->addr6[i]);
 
   return 0;
 }
@@ -64,6 +68,7 @@ parse_opt (int opt, char *arg, struct argp_state *state)
 {
   error_t err = 0;
   struct parse_hook *h = state->hook;
+  int i;
 
   /* Return _ERR from this routine */
 #define RETURN(_err)                          \
@@ -97,6 +102,7 @@ parse_opt (int opt, char *arg, struct argp_state *state)
     {
       struct parse_interface *in;
       uint8_t addr6_prefix_len;
+      ip6_addr_t *address6;
       char *ptr;
 
     case 'i':
@@ -208,15 +214,20 @@ parse_opt (int opt, char *arg, struct argp_state *state)
              "defaulting to %s/64.\n", arg);
         }
 
-        if (ip6addr_aton(arg, &h->curint->address6) <= 0)
-          PERR (EINVAL, "Malformed address");
+        for(i=0; i<LWIP_IPV6_NUM_ADDRESSES; i++)
+        {
+          address6 = (ip6_addr_t*)&h->curint->addr6[i];
 
-        if (ip6_addr_ismulticast (&h->curint->address6))
-          FAIL (EINVAL, 1, 0, "%s: Cannot set interface address to "
-          "multicast address", arg);
+          if(!ip6_addr_isany(address6))
+            continue;
+
+          if (ip6addr_aton(arg, address6) <= 0)
+            PERR (EINVAL, "Malformed address");
+
+          break;
+        }
       }
-      else
-        ip6_addr_set_zero (&h->curint->address6);
+
       break;
 
     case ARGP_KEY_INIT:

@@ -89,9 +89,8 @@ init_ifs(void *arg)
   struct parse_hook *ifs;
   struct netif *netif;
   int8_t ipv6_addr_idx;
-
-  if(netif_list != 0)
-    remove_ifs();
+  ip6_addr_t *address6;
+  int i;
 
   /*
    * Go through the list backwards. For LwIP
@@ -121,16 +120,21 @@ init_ifs(void *arg)
     netif->ip6_autoconfig_enabled = 1;
     netif_create_ip6_linklocal_address(netif, 1);
 
-    /* Add user given unicast address */
-    if(!ip6_addr_isany(&in->address6))
+    /* Add user given unicast addresses */
+    for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
     {
-      netif_add_ip6_address(netif, &in->address6, &ipv6_addr_idx);
+      address6 = (ip6_addr_t*)&in->addr6[i];
 
-      /* First use DAD to make sure nobody else has it */
-      if(ipv6_addr_idx >= 0)
-        netif_ip6_addr_set_state(netif, ipv6_addr_idx, IP6_ADDR_TENTATIVE);
-      else
-        error (1, 0, "No more free slots for new IPv6 addresses");
+      if(!ip6_addr_isany(address6) && !ip6_addr_ismulticast (address6))
+      {
+        netif_add_ip6_address(netif, address6, &ipv6_addr_idx);
+
+        /* First use DAD to make sure nobody else has it */
+        if(ipv6_addr_idx >= 0)
+          netif_ip6_addr_set_state(netif, ipv6_addr_idx, IP6_ADDR_TENTATIVE);
+        else
+          fprintf(stderr, "No more free slots for new IPv6 addresses\n");
+      }
     }
 
     //Up the inerface

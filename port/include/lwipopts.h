@@ -60,6 +60,7 @@
 #define LWIP_IPV6_AUTOCONFIG          1
 #define LWIP_IPV6_FORWARD             1
 #define MEMP_NUM_MLD6_GROUP           16
+#define LWIP_IPV6_NUM_ADDRESSES       6
 
 //Disable stats
 #define LWIP_STATS          0
