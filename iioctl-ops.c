@@ -193,7 +193,7 @@ lwip_S_iioctl_siocsifflags (struct sock_user *user,
     err = device_set_status (((struct hurdethif *)netif->state)->ether_port,
                                 NET_FLAGS, &status_flags, 1);
     if(err)
-      fprintf(stderr, "%s: hardware doesn't support flags. IPv6 won't work.\n",
+      fprintf(stderr, "%s: hardware doesn't support setting flags.\n",
                 ((struct hurdethif *)netif->state)->devname);
   }
 
@@ -206,7 +206,27 @@ lwip_S_iioctl_siocgifflags (struct sock_user *user,
         char *name,
         short *flags)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct netif *netif;
+  size_t count;
+  struct net_status status;
+
+  netif = get_if (name);
+  if (!netif)
+    err = ENODEV;
+  else
+  {
+    count = NET_STATUS_COUNT;
+    err = device_get_status (((struct hurdethif *)netif->state)->ether_port,
+                              NET_STATUS, (dev_status_t)&status, &count);
+    if (err)
+      fprintf(stderr, "%s: hardware doesn't support getting flags.\n",
+                ((struct hurdethif *)netif->state)->devname);
+    else
+      *flags = status.flags;
+  }
+
+  return err;
 }
 
 /* 19 SIOCSIFBRDADDR -- Set broadcast address of a network interface.  */
