@@ -21,6 +21,8 @@
 #include <lwip_iioctl_S.h>
 
 #include <lwip/sockets.h>
+#include <device/device.h>
+#include <device/net_status.h>
 
 #include <lwip-hurd.h>
 #include <lwip-util.h>
@@ -172,7 +174,30 @@ lwip_S_iioctl_siocsifflags (struct sock_user *user,
         ifname_t ifnam,
         short flags)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  int status_flags = flags;
+
+  struct netif *netif;
+
+  if (!user)
+    return EOPNOTSUPP;
+
+  netif = get_if (ifnam);
+
+  if (!user->isroot)
+    err = EPERM;
+  else if (!netif)
+    err = ENODEV;
+  else
+  {
+    err = device_set_status (((struct hurdethif *)netif->state)->ether_port,
+                                NET_FLAGS, &status_flags, 1);
+    if(err)
+      fprintf(stderr, "%s: hardware doesn't support flags. IPv6 won't work.\n",
+                ((struct hurdethif *)netif->state)->devname);
+  }
+
+  return err;
 }
 
 /* 17 SIOCGIFFLAGS -- Get flags of a network interface.  */
