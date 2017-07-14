@@ -160,30 +160,12 @@ update_if(struct netif *netif, uint32_t addr, uint32_t netmask, uint32_t peer,
             uint8_t *addr6_prefix_len)
 {
   error_t err;
-  uint8_t was_default;
-  int8_t ipv6_addr_idx;
-  char dev_name[DEV_NAME_LEN];
   int i;
 
   err = 0;
-  was_default = netif == netif_default;
-  strncpy(dev_name, ((struct hurdethif*)netif->state)->devname, DEV_NAME_LEN);
 
-  /* Remove the previous interface */
-  netifapi_netif_remove (netif);
-  hurdethif_terminate (netif);
-  free (netif);
-
-  /* Add a new one with the new configuration */
-  netif = malloc(sizeof(struct netif));
-  memset(netif, 0, sizeof(struct netif));
-
-  netifapi_netif_add(netif, (ip4_addr_t*)&addr, (ip4_addr_t*)&netmask,
-                      (ip4_addr_t*)&gateway, dev_name,
-                      hurdethif_init, tcpip_input);
-
-  netif->ip6_autoconfig_enabled = 1;
-  netif_create_ip6_linklocal_address(netif, 1);
+  netifapi_netif_set_addr(netif, (ip4_addr_t*)&addr,
+                      (ip4_addr_t*)&netmask, (ip4_addr_t*)&gateway);
 
   if(addr6)
     for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
@@ -191,23 +173,16 @@ update_if(struct netif *netif, uint32_t addr, uint32_t netmask, uint32_t peer,
       ip6_addr_t *laddr6 = ((ip6_addr_t *)addr6 + i);
       if(!ip6_addr_isany(laddr6))
       {
-        netif_add_ip6_address(netif, laddr6, &ipv6_addr_idx);
+        netif_ip6_addr_set(netif, i, laddr6);
 
-        if(ipv6_addr_idx >= 0)
-          netif_ip6_addr_set_state(netif, ipv6_addr_idx, IP6_ADDR_TENTATIVE);
+        if(!ip6_addr_islinklocal(laddr6))
+          netif_ip6_addr_set_state(netif, i, IP6_ADDR_TENTATIVE);
       }
     }
 
   if(addr6_prefix_len)
     for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
       *(addr6_prefix_len + i) = 64;
-
-  netifapi_netif_set_up(netif);
-
-  if (was_default)
-  {
-    netifapi_netif_set_default(netif);
-  }
 
   return err;
 }

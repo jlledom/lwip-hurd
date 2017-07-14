@@ -27,7 +27,8 @@
 #include <netif/hurdethif.h>
 
 /* Get the interface from its name */
-struct netif *get_if (char *name)
+static struct netif *
+get_if(char *name)
 {
   char ifname[16];
   struct netif *netif;
@@ -123,8 +124,6 @@ siocsifXaddr (struct sock_user *user,
   size_t buflen = sizeof(struct sockaddr_in);
   struct netif *netif;
   uint32_t ipv4_addrs[5];
-  uint32_t ipv6_addrs[LWIP_IPV6_NUM_ADDRESSES][4];
-  uint8_t addr6_prefix_len[LWIP_IPV6_NUM_ADDRESSES];
 
   if (!user)
     return EOPNOTSUPP;
@@ -150,12 +149,12 @@ siocsifXaddr (struct sock_user *user,
   else
   {
     inquire_device (netif, &ipv4_addrs[0], &ipv4_addrs[1],
-                      &ipv4_addrs[2], &ipv4_addrs[3], &ipv4_addrs[4],
-                      (uint32_t *)ipv6_addrs, addr6_prefix_len);
+                      &ipv4_addrs[2], &ipv4_addrs[3], &ipv4_addrs[4], 0, 0);
+
     ipv4_addrs[type] = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
+
     err = configure_device (netif, ipv4_addrs[0], ipv4_addrs[1],
-                      ipv4_addrs[2], ipv4_addrs[3], ipv4_addrs[4],
-                      (uint32_t *)ipv6_addrs, addr6_prefix_len);
+                      ipv4_addrs[2], ipv4_addrs[3], ipv4_addrs[4], 0, 0);
   }
 
   return err;
