@@ -241,7 +241,18 @@ lwip_S_iioctl_siocgifmetric (struct sock_user *user,
         ifname_t ifnam,
         int *metric)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct netif *netif;
+
+  netif = get_if (ifnam);
+  if (!netif)
+    err = ENODEV;
+  else
+    {
+      *metric = 0; /* Not supported.  */
+    }
+
+  return err;
 }
 
 /* 24 SIOCSIFMETRIC -- Set metric of a network interface.  */
