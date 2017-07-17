@@ -291,7 +291,19 @@ lwip_S_iioctl_siocgifhwaddr (struct sock_user *user,
         ifname_t ifname,
         sockaddr_t *addr)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct netif *netif;
+
+  netif = get_if (ifname);
+  if (!netif)
+    err = ENODEV;
+  else
+  {
+    memcpy(addr->sa_data, netif->hwaddr, netif->hwaddr_len);
+    addr->sa_family = ((struct ifcommon*)netif->state)->type;
+  }
+
+  return err;
 }
 
 /* 51 SIOCGIFMTU -- Get mtu of a network interface.  */

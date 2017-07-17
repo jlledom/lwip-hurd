@@ -26,6 +26,7 @@
 ## 4. Extra features to be implemented (not in the proposal)
 
 1. Build LwIP as a library
-2. PPPoS support
-3. PPPoE support
+2. Implement some currently unsupported operations
+3. PPPoS support
+4. PPPoE support
 
