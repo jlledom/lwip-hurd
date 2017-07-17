@@ -32,7 +32,7 @@
 
 #include <lwip-hurd.h>
 #include <lwip-util.h>
-#include <netif/hurdethif.h>
+#include <netif/ifcommon.h>
 
 /* Adds an empty interface slot to H, and sets H's current interface to it, or
    returns an error. */
@@ -294,7 +294,7 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
     inquire_device(netif, &addr, &netmask, 0, 0, &gateway,
                     (uint32_t *)addr6, addr6_prefix_len);
 
-    ADD_OPT ("--interface=%s", ((struct hurdethif*)netif->state)->devname);
+    ADD_OPT ("--interface=%s", ((struct ifcommon*)netif->state)->devname);
     if (addr != INADDR_NONE)
       ADD_ADDR_OPT ("address", addr);
     if (netmask != INADDR_NONE)

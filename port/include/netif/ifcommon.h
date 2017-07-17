@@ -18,18 +18,18 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
-#ifndef LWIP_HURDETHIF_H
-#define LWIP_HURDETHIF_H
+#ifndef LWIP_IFCOMMON_H
+#define LWIP_IFCOMMON_H
 
-#include <hurd/ports.h>
+/**
+ * Helper struct to hold private data used to operate your interface.
+ */
+struct ifcommon {
+  uint16_t type;
+  device_t ether_port;
+  struct port_info *readpt;
+  mach_port_t readptname;
+  char *devname;
+};
 
-#include <lwip/netif.h>
-#include <netif/ifcommon.h>
-
-typedef struct ifcommon hurdethif;
-
-err_t hurdethif_init(struct netif *netif);
-err_t hurdethif_terminate(struct netif *netif);
-error_t hurdethif_input_init();
-
-#endif /* LWIP_HURDETHIF_H */
+#endif /* LWIP_IFCOMMON_H */

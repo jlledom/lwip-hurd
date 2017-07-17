@@ -26,7 +26,7 @@
 
 #include <lwip-hurd.h>
 #include <lwip-util.h>
-#include <netif/hurdethif.h>
+#include <netif/ifcommon.h>
 
 /* Get the interface from its name */
 static struct netif *
@@ -41,7 +41,7 @@ get_if(char *name)
   netif = netif_list;
   while(netif != 0)
   {
-    if (strcmp (((struct hurdethif *)netif->state)->devname, ifname) == 0)
+    if (strcmp (((struct ifcommon *)netif->state)->devname, ifname) == 0)
       break;
 
     netif = netif->next;
@@ -190,11 +190,11 @@ lwip_S_iioctl_siocsifflags (struct sock_user *user,
     err = ENODEV;
   else
   {
-    err = device_set_status (((struct hurdethif *)netif->state)->ether_port,
+    err = device_set_status (((struct ifcommon *)netif->state)->ether_port,
                                 NET_FLAGS, &status_flags, 1);
     if(err)
       fprintf(stderr, "%s: hardware doesn't support setting flags.\n",
-                ((struct hurdethif *)netif->state)->devname);
+                ((struct ifcommon *)netif->state)->devname);
   }
 
   return err;
@@ -217,11 +217,11 @@ lwip_S_iioctl_siocgifflags (struct sock_user *user,
   else
   {
     count = NET_STATUS_COUNT;
-    err = device_get_status (((struct hurdethif *)netif->state)->ether_port,
+    err = device_get_status (((struct ifcommon *)netif->state)->ether_port,
                               NET_STATUS, (dev_status_t)&status, &count);
     if (err)
       fprintf(stderr, "%s: hardware doesn't support getting flags.\n",
-                ((struct hurdethif *)netif->state)->devname);
+                ((struct ifcommon *)netif->state)->devname);
     else
       *flags = status.flags;
   }
