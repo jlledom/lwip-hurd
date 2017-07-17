@@ -312,7 +312,18 @@ lwip_S_iioctl_siocgifmtu (struct sock_user *user,
         ifname_t ifnam,
         int *mtu)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct netif *netif;
+
+  netif = get_if (ifnam);
+  if (!netif)
+    err = ENODEV;
+  else
+  {
+    *mtu = netif->mtu;
+  }
+
+  return err;
 }
 
 /* 51 SIOCSIFMTU -- Set mtu of a network interface.  */
