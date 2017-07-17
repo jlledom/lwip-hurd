@@ -497,6 +497,20 @@ hurdethif_demuxer (mach_msg_header_t *inp,
   return 1;
 }
 
+/*
+ * Update the interface's MTU and the BPF filter
+ */
+error_t hurdethif_update_mtu(struct netif *netif, uint32_t mtu)
+{
+  error_t err = 0;
+
+  netif->mtu = mtu;
+
+  bpf_ether_filter[5].k = mtu + PBUF_LINK_HLEN;
+
+  return err;
+}
+
 /**
  * Should be called at the beginning of the program to set up the
  * network interface. It calls the function low_level_init() to do the
@@ -558,6 +572,8 @@ hurdethif_init(struct netif *netif)
   netif->output_ip6 = ethip6_output;
 #endif /* LWIP_IPV6 */
   netif->linkoutput = hurdethif_low_level_output;
+
+  ethif->update_mtu = hurdethif_update_mtu;
 
   /* initialize the hardware */
   return hurdethif_low_level_init(netif);

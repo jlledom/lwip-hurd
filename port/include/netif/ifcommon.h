@@ -30,6 +30,7 @@ struct ifcommon {
   struct port_info *readpt;
   mach_port_t readptname;
   char *devname;
+  error_t (*update_mtu)(struct netif *netif, uint32_t mtu);
 };
 
 #endif /* LWIP_IFCOMMON_H */
