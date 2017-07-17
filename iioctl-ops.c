@@ -332,7 +332,18 @@ lwip_S_iioctl_siocsifmtu (struct sock_user *user,
         ifname_t ifnam,
         int mtu)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct netif *netif;
+
+  netif = get_if (ifnam);
+  if (!netif)
+    err = ENODEV;
+  else
+  {
+    err = ((struct ifcommon*)netif->state)->update_mtu(netif, mtu);
+  }
+
+  return err;
 }
 
 /* 100 SIOCGIFINDEX -- Get index number of a network interface.  */
