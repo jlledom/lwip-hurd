@@ -62,6 +62,9 @@
 #define MEMP_NUM_MLD6_GROUP           16
 #define LWIP_IPV6_NUM_ADDRESSES       6
 
+/* TCP tuning */
+#define TCP_MSS     1460
+
 //Disable stats
 #define LWIP_STATS          0
 #define LWIP_STATS_DISPLAY  0

@@ -66,7 +66,8 @@ static struct bpf_insn bpf_ether_filter[] =
     {BPF_JMP|BPF_JEQ|BPF_K, 2, 0, 0x0806},	/* Accept ARP */
     {BPF_JMP|BPF_JEQ|BPF_K, 1, 0, 0x0800},	/* Accept IPv4 */
     {BPF_JMP|BPF_JEQ|BPF_K, 0, 1, 0x86DD},	/* Accept IPv6 */
-    {BPF_RET|BPF_K, 0, 0, 1500},		/* And return 1500 bytes */
+    /* And return MSS + IP and transport headers length + Ethernet header length*/
+    {BPF_RET|BPF_K, 0, 0, TCP_MSS + 0x28 + PBUF_LINK_HLEN},
     {BPF_RET|BPF_K, 0, 0, 0},			/* Or discard it all */
 };
 static int bpf_ether_filter_len = sizeof (bpf_ether_filter) / sizeof (short);
@@ -228,7 +229,7 @@ hurdethif_low_level_init(struct netif *netif)
   netif->hwaddr[5] = GET_HWADDR_BYTE(net_address,5);
 
   /* maximum transfer unit */
-  netif->mtu = 1500;
+  netif->mtu = TCP_MSS + 0x28;
 
   /* Enable Ethernet multicasting */
   hurdethif_device_set_flags(netif, IFF_BROADCAST|IFF_ALLMULTI);
