@@ -511,6 +511,21 @@ error_t hurdethif_update_mtu(struct netif *netif, uint32_t mtu)
   return err;
 }
 
+/*
+ * Release all resources of this netif.
+ *
+ * Returns 0 on success.
+ */
+error_t
+hurdethif_terminate(struct netif *netif)
+{
+  /* Free the interface and its hook */
+  mem_free (((hurdethif*)netif->state)->devname);
+  mem_free (netif->state);
+
+  return 0;
+}
+
 /**
  * Should be called at the beginning of the program to set up the
  * network interface. It calls the function low_level_init() to do the
@@ -573,25 +588,11 @@ hurdethif_init(struct netif *netif)
 #endif /* LWIP_IPV6 */
   netif->linkoutput = hurdethif_low_level_output;
 
+  ethif->terminate = hurdethif_terminate;
   ethif->update_mtu = hurdethif_update_mtu;
 
   /* initialize the hardware */
   return hurdethif_low_level_init(netif);
-}
-
-/*
- * Release all resources of this netif.
- *
- * Returns 0 on success.
- */
-error_t
-hurdethif_terminate(struct netif *netif)
-{
-  /* Free the interface and its hook */
-  mem_free (((hurdethif*)netif->state)->devname);
-  mem_free (netif->state);
-
-  return 0;
 }
 
 static void *

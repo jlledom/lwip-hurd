@@ -75,7 +75,7 @@ remove_ifs()
     netif = netif_list;
     netifapi_netif_remove (netif);
 
-    hurdethif_terminate (netif);
+    ((struct ifcommon*)netif->state)->terminate (netif);
     free (netif);
   }
 
