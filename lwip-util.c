@@ -171,12 +171,12 @@ init_ifs(void *arg)
 
     //Up the inerface
     netifapi_netif_set_up(netif);
-  }
 
-  /* Set the first interface with valid gateway as default */
-  if (in->gateway.addr != INADDR_NONE)
-  {
-    netifapi_netif_set_default(netif);
+    /* Set the first interface with valid gateway as default */
+    if (in->gateway.addr != INADDR_NONE)
+    {
+      netifapi_netif_set_default(netif);
+    }
   }
 
   /* Free the hook */
