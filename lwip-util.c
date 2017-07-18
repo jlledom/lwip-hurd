@@ -132,6 +132,10 @@ init_ifs(void *arg)
   for (in = ifs->interfaces + ifs->num_interfaces - 1;
         in >= ifs->interfaces; in--)
   {
+    /* The interface hasn't been completely configured */
+    if(!in->dev_name[0])
+      continue;
+
     if(!ipv4config_is_valid(in->address.addr, in->netmask.addr,
                               in->gateway.addr, INADDR_NONE))
       continue;
