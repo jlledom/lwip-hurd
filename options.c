@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <net/if_arp.h>
 
 #include <lwip/tcpip.h>
 #include <lwip/netif.h>
@@ -291,6 +292,13 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
   netif = netif_list;
   while(netif != 0)
   {
+    /* Skip the loopback interface*/
+    if(((struct ifcommon*)netif->state)->type == ARPHRD_LOOPBACK)
+    {
+      netif = netif->next;
+      continue;
+    }
+
     inquire_device(netif, &addr, &netmask, 0, 0, &gateway,
                     (uint32_t *)addr6, addr6_prefix_len);
 

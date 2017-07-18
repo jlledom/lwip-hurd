@@ -21,6 +21,7 @@
 #include <lwip-util.h>
 
 #include <error.h>
+#include <net/if_arp.h>
 
 #include <lwip/sockets.h>
 #include <lwip/tcpip.h>
@@ -65,18 +66,41 @@ ipv4config_is_valid(uint32_t addr, uint32_t netmask,
   return 1;
 }
 
+/* Configure the loopback interface */
+static
+void configure_loopback()
+{
+  struct ifcommon *loif;
+
+  /* This memory is never freed */
+  loif = malloc(sizeof(struct ifcommon));
+  loif->devname = LOOP_DEV_NAME;
+  loif->type = ARPHRD_LOOPBACK;
+
+  netif_list->state = loif;
+}
+
 void
 remove_ifs()
 {
   struct netif *netif;
 
-  while(netif_list != 0)
+  netif = netif_list;
+  while(netif != 0)
   {
-    netif = netif_list;
+    /* Skip the loopback interface*/
+    if(((struct ifcommon*)netif->state)->type == ARPHRD_LOOPBACK)
+    {
+      netif = netif->next;
+      continue;
+    }
+
     netifapi_netif_remove (netif);
 
     ((struct ifcommon*)netif->state)->terminate (netif);
     free (netif);
+
+    netif = netif_list;
   }
 
   return;
@@ -91,6 +115,14 @@ init_ifs(void *arg)
   int8_t ipv6_addr_idx;
   ip6_addr_t *address6;
   int i;
+
+  if(netif_list != 0)
+  {
+    if(netif_list->next == 0)
+      configure_loopback();
+    else
+      remove_ifs();
+  }
 
   /*
    * Go through the list backwards. For LwIP

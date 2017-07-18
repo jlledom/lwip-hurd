@@ -21,9 +21,10 @@
 #ifndef LWIP_UTIL_H
 #define LWIP_UTIL_H
 
+#define LOOP_DEV_NAME   "lo"
+
 #include <lwip/netif.h>
 
-void remove_ifs();
 void init_ifs(void *arg);
 
 void inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,

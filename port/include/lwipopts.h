@@ -35,9 +35,6 @@
 //Only send complete packets to the device
 #define LWIP_NETIF_TX_SINGLE_PBUF 1
 
-/* Don't create a loopback interface. Use the other interfaces */
-#define LWIP_HAVE_LOOPIF  0
-
 /* Randomize local ports */
 #define LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS  1
 
