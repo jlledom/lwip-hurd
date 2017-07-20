@@ -632,15 +632,18 @@ udp_sendto_if_chksum(struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *dst_i
   else
 #endif /* LWIP_IPV4 && LWIP_IPV6 */
 #if LWIP_IPV4
-  if (ip4_addr_isany(ip_2_ip4(&pcb->local_ip)) ||
-      ip4_addr_ismulticast(ip_2_ip4(&pcb->local_ip))) {
+  if ((ip4_addr_isany(ip_2_ip4(&pcb->local_ip))
+      && netif_ip4_addr(netif)->addr != INADDR_NONE)
+      || ip4_addr_ismulticast(ip_2_ip4(&pcb->local_ip))) {
     /* if the local_ip is any or multicast
      * use the outgoing network interface IP address as source address */
     src_ip = netif_ip_addr4(netif);
   } else {
     /* check if UDP PCB local IP address is correct
      * this could be an old address if netif->ip_addr has changed */
-    if (!ip4_addr_cmp(ip_2_ip4(&(pcb->local_ip)), netif_ip4_addr(netif))) {
+    if (!ip4_addr_cmp(ip_2_ip4(&(pcb->local_ip)), netif_ip4_addr(netif))
+        && !(ip4_addr_isany(ip_2_ip4(&pcb->local_ip))
+              && netif_ip4_addr(netif)->addr == INADDR_NONE)) {
       /* local_ip doesn't match, drop the packet */
       return ERR_RTE;
     }
