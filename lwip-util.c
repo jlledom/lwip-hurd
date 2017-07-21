@@ -233,28 +233,28 @@ inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,
   if(netif)
   {
     if(addr)
-      *addr = netif->ip_addr.u_addr.ip4.addr;
+      *addr = netif_ip4_addr(netif)->addr;
 
     if(netmask)
-      *netmask = netif->netmask.u_addr.ip4.addr;
+      *netmask = netif_ip4_netmask(netif)->addr;
 
     if(peer)
       *peer = INADDR_NONE;
 
     if(broadcast)
       *broadcast =
-          netif->ip_addr.u_addr.ip4.addr | ~netif->netmask.u_addr.ip4.addr;
+          netif_ip4_addr(netif)->addr | ~netif_ip4_netmask(netif)->addr;
 
     if(gateway)
-      *gateway = netif->gw.u_addr.ip4.addr;
+      *gateway = netif_ip4_netmask(netif)->addr;
 
     if(addr6)
       for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)
       {
-        *(addr6 + i*4 + 0) = netif->ip6_addr[i].u_addr.ip6.addr[0];
-        *(addr6 + i*4 + 1) = netif->ip6_addr[i].u_addr.ip6.addr[1];
-        *(addr6 + i*4 + 2) = netif->ip6_addr[i].u_addr.ip6.addr[2];
-        *(addr6 + i*4 + 3) = netif->ip6_addr[i].u_addr.ip6.addr[3];
+        *(addr6 + i*4 + 0) = netif_ip6_addr(netif, i)->addr[0];
+        *(addr6 + i*4 + 1) = netif_ip6_addr(netif, i)->addr[1];
+        *(addr6 + i*4 + 2) = netif_ip6_addr(netif, i)->addr[2];
+        *(addr6 + i*4 + 3) = netif_ip6_addr(netif, i)->addr[3];
       }
 
     if(addr6_prefix_len)
