@@ -335,6 +335,15 @@ lwip_S_iioctl_siocsifmtu (struct sock_user *user,
   error_t err = 0;
   struct netif *netif;
 
+  if (!user)
+    return EOPNOTSUPP;
+
+  if (!user->isroot)
+    err = EPERM;
+
+  if (mtu <= 0)
+    err = EINVAL;
+
   netif = get_if (ifnam);
   if (!netif)
     err = ENODEV;
