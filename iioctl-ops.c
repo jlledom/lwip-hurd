@@ -370,5 +370,32 @@ lwip_S_iioctl_siocgifname (struct sock_user *user,
         ifname_t ifnam,
         int *index)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct netif *netif;
+  int i;
+
+  if(*index < 0)
+    return EINVAL;
+
+  /* Get the number of interfaces */
+  i = 0;
+  netif = netif_list;
+  while(netif != 0)
+  {
+    if(i == *index)
+      break;
+
+    netif = netif->next;
+    i++;
+  }
+
+  if(!netif)
+    err = ENODEV;
+  else
+  {
+    strncpy (ifnam, netif_get_state(netif)->devname, IFNAMSIZ);
+    ifnam[IFNAMSIZ-1] = '\0';
+  }
+
+  return err;
 }
