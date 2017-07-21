@@ -41,7 +41,7 @@ get_if(char *name)
   netif = netif_list;
   while(netif != 0)
   {
-    if (strcmp (((struct ifcommon *)netif->state)->devname, ifname) == 0)
+    if (strcmp (netif_get_state(netif)->devname, ifname) == 0)
       break;
 
     netif = netif->next;
@@ -190,11 +190,11 @@ lwip_S_iioctl_siocsifflags (struct sock_user *user,
     err = ENODEV;
   else
   {
-    err = device_set_status (((struct ifcommon *)netif->state)->ether_port,
+    err = device_set_status (netif_get_state(netif)->ether_port,
                                 NET_FLAGS, &status_flags, 1);
     if(err)
       fprintf(stderr, "%s: hardware doesn't support setting flags.\n",
-                ((struct ifcommon *)netif->state)->devname);
+                netif_get_state(netif)->devname);
   }
 
   return err;
@@ -217,11 +217,11 @@ lwip_S_iioctl_siocgifflags (struct sock_user *user,
   else
   {
     count = NET_STATUS_COUNT;
-    err = device_get_status (((struct ifcommon *)netif->state)->ether_port,
+    err = device_get_status (netif_get_state(netif)->ether_port,
                               NET_STATUS, (dev_status_t)&status, &count);
     if (err)
       fprintf(stderr, "%s: hardware doesn't support getting flags.\n",
-                ((struct ifcommon *)netif->state)->devname);
+                netif_get_state(netif)->devname);
     else
       *flags = status.flags;
   }
@@ -300,7 +300,7 @@ lwip_S_iioctl_siocgifhwaddr (struct sock_user *user,
   else
   {
     memcpy(addr->sa_data, netif->hwaddr, netif->hwaddr_len);
-    addr->sa_family = ((struct ifcommon*)netif->state)->type;
+    addr->sa_family = netif_get_state(netif)->type;
   }
 
   return err;
@@ -340,7 +340,7 @@ lwip_S_iioctl_siocsifmtu (struct sock_user *user,
     err = ENODEV;
   else
   {
-    err = ((struct ifcommon*)netif->state)->update_mtu(netif, mtu);
+    err = netif_get_state(netif)->update_mtu(netif, mtu);
   }
 
   return err;

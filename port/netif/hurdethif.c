@@ -207,13 +207,13 @@ hurdethif_low_level_init(struct netif *netif)
   LWIP_ASSERT ("err==0", err==0);
 
   //Get the MAC address
-  ether_port = ((hurdethif*)netif->state)->ether_port;
+  ether_port = netif_get_state(netif)->ether_port;
   err = device_get_status (ether_port, NET_ADDRESS, net_address, &count);
   LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
                   count * sizeof (int) >= ETHARP_HWADDR_LEN);
   if (err)
     error (2, err, "%s: Cannot get hardware Ethernet address",
-            ((hurdethif*)netif->state)->devname);
+            netif_get_state(netif)->devname);
   net_address[0] = ntohl (net_address[0]);
   net_address[1] = ntohl (net_address[1]);
 
@@ -482,7 +482,7 @@ hurdethif_demuxer (mach_msg_header_t *inp,
     local_port = inp->msgh_local_port;
 
   for (netif = netif_list; netif; netif = netif->next)
-    if (local_port == ((hurdethif*)netif->state)->readptname)
+    if (local_port == netif_get_state(netif)->readptname)
       break;
 
   if (!netif)
@@ -520,7 +520,7 @@ error_t
 hurdethif_terminate(struct netif *netif)
 {
   /* Free the interface and its hook */
-  mem_free (((hurdethif*)netif->state)->devname);
+  mem_free (netif_get_state(netif)->devname);
   mem_free (netif->state);
 
   return 0;

@@ -21,7 +21,7 @@
 #ifndef LWIP_IFCOMMON_H
 #define LWIP_IFCOMMON_H
 
-/**
+/*
  * Helper struct to hold private data used to operate your interface.
  */
 struct ifcommon {
@@ -33,5 +33,8 @@ struct ifcommon {
   error_t (*terminate)(struct netif *netif);
   error_t (*update_mtu)(struct netif *netif, uint32_t mtu);
 };
+
+/* Get the state from a netif */
+#define netif_get_state(netif)  ((struct ifcommon *)netif->state)
 
 #endif /* LWIP_IFCOMMON_H */

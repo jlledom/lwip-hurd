@@ -293,7 +293,7 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
   while(netif != 0)
   {
     /* Skip the loopback interface*/
-    if(((struct ifcommon*)netif->state)->type == ARPHRD_LOOPBACK)
+    if(netif_get_state(netif)->type == ARPHRD_LOOPBACK)
     {
       netif = netif->next;
       continue;
@@ -302,7 +302,7 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
     inquire_device(netif, &addr, &netmask, 0, 0, &gateway,
                     (uint32_t *)addr6, addr6_prefix_len);
 
-    ADD_OPT ("--interface=%s", ((struct ifcommon*)netif->state)->devname);
+    ADD_OPT ("--interface=%s", netif_get_state(netif)->devname);
     if (addr != INADDR_NONE)
       ADD_ADDR_OPT ("address", addr);
     if (netmask != INADDR_NONE)

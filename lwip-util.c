@@ -89,7 +89,7 @@ remove_ifs()
   while(netif != 0)
   {
     /* Skip the loopback interface*/
-    if(((struct ifcommon*)netif->state)->type == ARPHRD_LOOPBACK)
+    if(netif_get_state(netif)->type == ARPHRD_LOOPBACK)
     {
       netif = netif->next;
       continue;
@@ -97,7 +97,7 @@ remove_ifs()
 
     netifapi_netif_remove (netif);
 
-    ((struct ifcommon*)netif->state)->terminate (netif);
+    netif_get_state(netif)->terminate (netif);
     free (netif);
 
     netif = netif_list;
