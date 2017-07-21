@@ -361,7 +361,28 @@ lwip_S_iioctl_siocgifindex (struct sock_user *user,
           ifname_t ifnam,
           int *index)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+  struct netif *netif;
+  int i;
+
+  i = 0;
+  netif = netif_list;
+  while(netif != 0)
+  {
+    if (strcmp (netif_get_state(netif)->devname, ifnam) == 0)
+    {
+      *index = i;
+      break;
+    }
+
+    netif = netif->next;
+    i++;
+  }
+
+  if(!netif)
+    err = ENODEV;
+
+  return err;
 }
 
 /* 101 SIOCGIFNAME -- Get name of a network interface from index number.  */
