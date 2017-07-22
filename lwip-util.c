@@ -246,7 +246,7 @@ inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,
           netif_ip4_addr(netif)->addr | ~netif_ip4_netmask(netif)->addr;
 
     if(gateway)
-      *gateway = netif_ip4_netmask(netif)->addr;
+      *gateway = netif_ip4_gw(netif)->addr;
 
     if(addr6)
       for(i=0; i< LWIP_IPV6_NUM_ADDRESSES; i++)

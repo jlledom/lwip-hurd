@@ -3,7 +3,6 @@
 ## 1. Features to be implemented
 
 1. Implement --peer option
-2. Implement other interfaces' operations
 
 ## 2. Known bugs
 
