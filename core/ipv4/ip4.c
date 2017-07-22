@@ -931,7 +931,7 @@ ip4_output_if_opt_src(struct pbuf *p, const ip4_addr_t *src, const ip4_addr_t *d
   ip4_debug_print(p);
 
 #if ENABLE_LOOPBACK
-  if (!ip4_addr_isnone(netif_ip4_addr(netif))
+  if (!ip4_addr_isbroadcast(dest, netif)
       && ip4_addr_cmp(dest, netif_ip4_addr(netif))
 #if !LWIP_HAVE_LOOPIF
       || ip4_addr_isloopback(dest)
