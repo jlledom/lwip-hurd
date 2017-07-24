@@ -128,8 +128,7 @@ lwip_S_socket_accept (struct sock_user *user,
 	}
   else
   {
-    err = lwip_S_socket_create_address (0, addr.sa.sa_family, (void *)&addr.sa,
-            addr.sa.sa_len, addr_port, addr_port_type);
+    err = make_sockaddr_port (newsock->sockno, 1, addr_port, addr_port_type);
     if(err)
       return err;
 
