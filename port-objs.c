@@ -50,9 +50,9 @@ make_sockaddr_port (int sock,
 			    + buflen), &addrstruct);
   if (!err)
     {
-      addrstruct->address.sa_family = buf.sa.sa_family;
-      addrstruct->address.sa_len = buflen;
-      memcpy (addrstruct->address.sa_data, buf.sa.sa_data,
+      addrstruct->address.sa.sa_family = buf.sa.sa_family;
+      addrstruct->address.sa.sa_len = buflen;
+      memcpy (addrstruct->address.sa.sa_data, buf.sa.sa_data,
 	      buflen - offsetof (struct sockaddr, sa_data));
       *addr = ports_get_right (addrstruct);
       *addrtype = MACH_MSG_TYPE_MAKE_SEND;

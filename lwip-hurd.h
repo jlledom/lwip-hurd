@@ -65,7 +65,7 @@ struct sock_user
 struct sock_addr
 {
   struct port_info pi;
-  struct sockaddr address;
+  union { struct sockaddr_storage storage; struct sockaddr sa; } address;
 };
 
 /* Owner of the underlying node.  */

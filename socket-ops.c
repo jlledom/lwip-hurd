@@ -150,7 +150,8 @@ lwip_S_socket_connect (struct sock_user *user,
   if (!user || !addr)
     return EOPNOTSUPP;
 
-  err = lwip_connect(user->sock->sockno, &addr->address, addr->address.sa_len);
+  err = lwip_connect(user->sock->sockno,
+                    &addr->address.sa, addr->address.sa.sa_len);
 
   /* MiG should do this for us, but it doesn't. */
   if (!err)
@@ -175,7 +176,8 @@ lwip_S_socket_bind (struct sock_user *user,
   if (! addr)
     return EADDRNOTAVAIL;
 
-  err = lwip_bind(user->sock->sockno, &addr->address, addr->address.sa_len);
+  err = lwip_bind(user->sock->sockno,
+                  &addr->address.sa, addr->address.sa.sa_len);
 
   /* MiG should do this for us, but it doesn't. */
   if (!err)
@@ -247,10 +249,10 @@ lwip_S_socket_create_address (mach_port_t server,
   if (err)
     return err;
 
-  memcpy (&addrstruct->address, data, data_len);
+  memcpy (&addrstruct->address.sa, data, data_len);
 
   /* BSD does not require incoming sa_len to be set, so we don't either.  */
-  addrstruct->address.sa_len = data_len;
+  addrstruct->address.sa.sa_len = data_len;
 
   *addr_port = ports_get_right (addrstruct);
   *addr_port_type = MACH_MSG_TYPE_MAKE_SEND;
@@ -276,12 +278,12 @@ lwip_S_socket_whatis_address (struct sock_addr *addr,
   if (!addr)
     return EOPNOTSUPP;
 
-  *type = addr->address.sa_family;
-  if (*datalen < addr->address.sa_len)
-    *data = mmap (0, addr->address.sa_len,
+  *type = addr->address.sa.sa_family;
+  if (*datalen < addr->address.sa.sa_len)
+    *data = mmap (0, addr->address.sa.sa_len,
 		  PROT_READ|PROT_WRITE, MAP_ANON, 0, 0);
-  *datalen = addr->address.sa_len;
-  memcpy (*data, &addr->address, addr->address.sa_len);
+  *datalen = addr->address.sa.sa_len;
+  memcpy (*data, &addr->address.sa, addr->address.sa.sa_len);
 
   return 0;
 }
@@ -346,7 +348,7 @@ lwip_S_socket_send (struct sock_user *user,
   int sockflags;
   struct iovec iov = { data, datalen };
   struct msghdr m = { msg_name: addr ? &addr->address : 0,
-		      msg_namelen: addr ? addr->address.sa_len : 0,
+		      msg_namelen: addr ? addr->address.sa.sa_len : 0,
 		      msg_flags: flags,
 		      msg_controllen: 0, msg_iov: &iov, msg_iovlen: 1 };
 
