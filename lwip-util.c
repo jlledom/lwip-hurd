@@ -30,6 +30,7 @@
 #include <lwip-hurd.h>
 #include <options.h>
 #include <netif/hurdethif.h>
+#include <netif/hurdloopif.h>
 
 static int
 ipv4config_is_valid(uint32_t addr, uint32_t netmask,
@@ -68,16 +69,21 @@ ipv4config_is_valid(uint32_t addr, uint32_t netmask,
 
 /* Configure the loopback interface */
 static
-void configure_loopback()
+void init_loopback()
 {
   struct ifcommon *loif;
 
-  /* This memory is never freed */
+  /*
+   * This pointer is freed at hurdloopif_terminate(),
+   * but for now it is never called.
+   */
   loif = malloc(sizeof(struct ifcommon));
-  loif->devname = LOOP_DEV_NAME;
-  loif->type = ARPHRD_LOOPBACK;
+  if(!loif)
+    error (2, errno, "init_loopback: out of memory");
 
   netif_list->state = loif;
+
+  hurdloopif_init(netif_list);
 }
 
 void
@@ -119,7 +125,7 @@ init_ifs(void *arg)
   if(netif_list != 0)
   {
     if(netif_list->next == 0)
-      configure_loopback();
+      init_loopback();
     else
       remove_ifs();
   }
