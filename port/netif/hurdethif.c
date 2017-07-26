@@ -92,7 +92,7 @@ hurdethif_device_get_flags(struct netif *netif, uint16_t *flags)
 
   memset(&status, 0, sizeof(struct net_status));
 
-  ethif = netif->state;
+  ethif = netif_get_state(netif);
   count = NET_STATUS_COUNT;
   err = device_get_status (ethif->ether_port,
                             NET_STATUS, (dev_status_t)&status, &count);
@@ -122,7 +122,7 @@ hurdethif_device_set_flags(struct netif *netif, uint16_t flags)
   int sflags;
 
   sflags = flags;
-  ethif = netif->state;
+  ethif = netif_get_state(netif);
   err = device_set_status (ethif->ether_port, NET_FLAGS, &sflags, 1);
   if(err == D_INVALID_OPERATION)
   {
@@ -147,7 +147,7 @@ hurdethif_device_open (struct netif *netif)
 {
   err_t err;
   device_t master_device;
-  hurdethif *ethif = netif->state;
+  hurdethif *ethif = netif_get_state(netif);
 
   LWIP_ASSERT ("hurdethif->ether_port == MACH_PORT_NULL",
                   ethif->ether_port == MACH_PORT_NULL);
@@ -210,7 +210,7 @@ hurdethif_device_open (struct netif *netif)
 static err_t
 hurdethif_device_close (struct netif *netif)
 {
-  hurdethif *ethif = netif->state;
+  hurdethif *ethif = netif_get_state(netif);
 
   mach_port_deallocate (mach_task_self (), ethif->readptname);
   ethif->readptname = MACH_PORT_NULL;
@@ -311,7 +311,7 @@ static err_t
 hurdethif_low_level_output(struct netif *netif, struct pbuf *p)
 {
   error_t err;
-  hurdethif *ethif = netif->state;
+  hurdethif *ethif = netif_get_state(netif);
   int count;
   u8_t tried;
 
@@ -562,7 +562,7 @@ hurdethif_terminate(struct netif *netif)
 {
   /* Free the interface and its hook */
   mem_free (netif_get_state(netif)->devname);
-  mem_free (netif->state);
+  mem_free (netif_get_state(netif));
 
   return 0;
 }
