@@ -79,33 +79,62 @@ struct port_class *etherread_class;
 /* Thread for the incoming data */
 static pthread_t input_thread;
 
-static err_t
-hurdethif_device_set_flags(struct netif *netif, int flags)
+static error_t
+hurdethif_device_get_flags(struct netif *netif, uint16_t *flags)
 {
-  err_t err;
+  error_t err = 0;
   size_t count;
   struct net_status status;
   hurdethif *ethif;
 
+  memset(&status, 0, sizeof(struct net_status));
+
   ethif = netif->state;
   count = NET_STATUS_COUNT;
-  err = device_get_status (ethif->ether_port, NET_STATUS,
-                            (dev_status_t)&status, &count);
-  if (err)
-    error (2, err, "%s: Cannot get hardware flags", ethif->devname);
-
-  status.flags |= flags;
-
-  err = device_set_status (ethif->ether_port, NET_FLAGS, &status.flags, 1);
+  err = device_get_status (ethif->ether_port,
+                            NET_STATUS, (dev_status_t)&status, &count);
   if(err == D_INVALID_OPERATION)
+  {
     /*
      * eth-multiplexer doesn't support setting flags.
      * We must ignore D_INVALID_OPERATION.
      */
-    fprintf(stderr, "%s: hardware doesn't support flags. IPv6 won't work.\n",
+    fprintf(stderr, "%s: hardware doesn't support getting flags.\n",
               ethif->devname);
+    err = 0;
+  }
   else if (err)
     error (2, err, "%s: Cannot set hardware flags", ethif->devname);
+
+  *flags = status.flags;
+
+  return err;
+}
+
+static error_t
+hurdethif_device_set_flags(struct netif *netif, uint16_t flags)
+{
+  error_t err = 0;
+  hurdethif *ethif;
+  int sflags;
+
+  sflags = flags;
+  ethif = netif->state;
+  err = device_set_status (ethif->ether_port, NET_FLAGS, &sflags, 1);
+  if(err == D_INVALID_OPERATION)
+  {
+    /*
+     * eth-multiplexer doesn't support setting flags.
+     * We must ignore D_INVALID_OPERATION.
+     */
+    fprintf(stderr, "%s: hardware doesn't support setting flags.\n",
+              ethif->devname);
+    err = 0;
+  }
+  else if (err)
+    error (2, err, "%s: Cannot set hardware flags", ethif->devname);
+
+  ethif->flags = flags;
 
   return err;
 }
@@ -232,7 +261,10 @@ hurdethif_low_level_init(struct netif *netif)
   netif->mtu = TCP_MSS + 0x28;
 
   /* Enable Ethernet multicasting */
-  hurdethif_device_set_flags(netif, IFF_BROADCAST|IFF_ALLMULTI);
+  hurdethif_device_get_flags(netif, &netif_get_state(netif)->flags);
+  netif_get_state(netif)->flags |= IFF_BROADCAST|IFF_ALLMULTI;
+  hurdethif_device_set_flags(netif, netif_get_state(netif)->flags);
+  netif_get_state(netif)->change_flags = hurdethif_device_set_flags;
 
   /* device capabilities */
   /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */

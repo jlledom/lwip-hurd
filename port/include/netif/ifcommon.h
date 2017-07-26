@@ -30,8 +30,12 @@ struct ifcommon {
   struct port_info *readpt;
   mach_port_t readptname;
   char *devname;
+  uint16_t flags;
+
+  /* Callbacks */
   error_t (*terminate)(struct netif *netif);
   error_t (*update_mtu)(struct netif *netif, uint32_t mtu);
+  error_t (*change_flags)(struct netif *netif, uint16_t flags);
 };
 
 /* Get the state from a netif */
