@@ -270,7 +270,6 @@ hurdethif_low_level_init(struct netif *netif)
   hurdethif_device_get_flags(netif, &netif_get_state(netif)->flags);
   netif_get_state(netif)->flags |= IFF_BROADCAST|IFF_ALLMULTI;
   hurdethif_device_set_flags(netif, netif_get_state(netif)->flags);
-  netif_get_state(netif)->change_flags = hurdethif_device_set_flags;
 
   /* device capabilities */
   /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
@@ -633,6 +632,7 @@ hurdethif_init(struct netif *netif)
 
   ethif->terminate = hurdethif_terminate;
   ethif->update_mtu = hurdethif_update_mtu;
+  ethif->change_flags = hurdethif_device_set_flags;
 
   /* initialize the hardware */
   return hurdethif_low_level_init(netif);
