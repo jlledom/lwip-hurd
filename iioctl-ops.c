@@ -365,7 +365,7 @@ lwip_S_iioctl_siocgifindex (struct sock_user *user,
   struct netif *netif;
   int i;
 
-  i = 0;
+  i = 1; /* The first index must be 1 */
   netif = netif_list;
   while(netif != 0)
   {
@@ -398,8 +398,7 @@ lwip_S_iioctl_siocgifname (struct sock_user *user,
   if(*index < 0)
     return EINVAL;
 
-  /* Get the number of interfaces */
-  i = 0;
+  i = 1; /* The first index is 1 */
   netif = netif_list;
   while(netif != 0)
   {
