@@ -175,7 +175,6 @@ lwip_S_iioctl_siocsifflags (struct sock_user *user,
         short flags)
 {
   error_t err = 0;
-  int status_flags = flags;
 
   struct netif *netif;
 
@@ -190,11 +189,7 @@ lwip_S_iioctl_siocsifflags (struct sock_user *user,
     err = ENODEV;
   else
   {
-    err = device_set_status (netif_get_state(netif)->ether_port,
-                                NET_FLAGS, &status_flags, 1);
-    if(err)
-      fprintf(stderr, "%s: hardware doesn't support setting flags.\n",
-                netif_get_state(netif)->devname);
+    err = netif_get_state(netif)->change_flags(netif, flags);
   }
 
   return err;
@@ -208,22 +203,13 @@ lwip_S_iioctl_siocgifflags (struct sock_user *user,
 {
   error_t err = 0;
   struct netif *netif;
-  size_t count;
-  struct net_status status;
 
   netif = get_if (name);
   if (!netif)
     err = ENODEV;
   else
   {
-    count = NET_STATUS_COUNT;
-    err = device_get_status (netif_get_state(netif)->ether_port,
-                              NET_STATUS, (dev_status_t)&status, &count);
-    if (err)
-      fprintf(stderr, "%s: hardware doesn't support getting flags.\n",
-                netif_get_state(netif)->devname);
-    else
-      *flags = status.flags;
+    *flags = netif_get_state(netif)->flags;
   }
 
   return err;
