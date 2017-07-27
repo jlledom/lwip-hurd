@@ -39,7 +39,7 @@
 #define LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS  1
 
 /* Available sockets */
-#define MEMP_NUM_NETCONN  32
+#define MEMP_NUM_NETCONN  256
 
 // Glibc sends more than one packet in a row during an ARP resolution
 #define ARP_QUEUEING    1
@@ -60,7 +60,12 @@
 #define LWIP_IPV6_NUM_ADDRESSES       6
 
 /* TCP tuning */
-#define TCP_MSS     1460
+#define TCP_MSS                 1460
+#define TCP_WND                 0xFFFF
+#define TCP_SND_BUF             TCP_WND
+
+/* Throughput settings */
+#define LWIP_CHECKSUM_ON_COPY   1
 
 //Disable stats
 #define LWIP_STATS          0
