@@ -1329,7 +1329,17 @@ lwip_selscan(int maxfdp1, fd_set *readset_in, fd_set *writeset_in, fd_set *excep
       s16_t rcvevent = sock->rcvevent;
       u16_t sendevent = sock->sendevent;
       u16_t errevent = sock->errevent;
+      int err = sock->err;
       SYS_ARCH_UNPROTECT(lev);
+
+      /*
+       * FIXME: Workaround for handling the particular case when iioctl
+       * operations or fsysopts remove and add new interfaces while there are
+       * opened connections.
+       */
+      if(err == ECONNABORTED) {
+        continue;
+      }
 
       /* ... then examine it: */
       /* See if netconn of this socket is ready for read */
