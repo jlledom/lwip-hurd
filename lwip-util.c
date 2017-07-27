@@ -148,7 +148,6 @@ init_ifs(void *arg)
 
     netif = malloc(sizeof(struct netif));
     memset(netif, 0, sizeof(struct netif));
-    strncpy(netif->name, in->lwip_name, LWIP_NAME_LEN);
 
     /*
      * Create a new interface and configre IPv4.

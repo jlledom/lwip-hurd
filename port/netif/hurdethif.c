@@ -615,8 +615,6 @@ hurdethif_init(struct netif *netif)
 
   strncpy(ethif->devname, netif->state, strlen(netif->state));
   netif->state = ethif;
-  netif->name[0] = IFNAME0;
-  netif->name[1] = IFNAME1;
 
   ethif->type = ARPHRD_ETHER;
 

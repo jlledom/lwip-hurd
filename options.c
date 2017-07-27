@@ -52,7 +52,6 @@ parse_hook_add_interface (struct parse_hook *h)
   h->num_interfaces++;
   h->curint = new + h->num_interfaces - 1;
   memset(&h->curint->dev_name, 0, DEV_NAME_LEN);
-  memset(&h->curint->lwip_name, 0, LWIP_NAME_LEN);
   h->curint->address.addr = INADDR_NONE;
   h->curint->netmask.addr = INADDR_NONE;
   h->curint->peer.addr = INADDR_NONE;
@@ -128,8 +127,6 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       in = h->curint;
 
       strncpy(in->dev_name, arg, DEV_NAME_LEN);
-      in->lwip_name[0] = h->num_interfaces / 10 + '0';
-      in->lwip_name[1] = h->num_interfaces % 10 + '0';
       break;
 
     case 'a':
