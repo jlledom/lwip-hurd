@@ -72,6 +72,7 @@
 #define LWIP_STATS_DISPLAY  0
 
 /* Enable all socket operations */
+#define LWIP_TCP_KEEPALIVE          1
 #define LWIP_SO_SNDTIMEO            1
 #define LWIP_SO_RCVTIMEO            1
 #define LWIP_SO_RCVBUF              1
