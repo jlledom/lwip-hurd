@@ -32,6 +32,7 @@ struct hurdtunif
 
   struct trivfs_control *cntl; /* Identify the tunnel device in use */
   file_t underlying; /* Underlying node where the tunnel is bound */
+  struct iouser *user; /* Restrict the access to one user at a time */
 };
 
 struct port_class *tunnel_cntlclass;

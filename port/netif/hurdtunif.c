@@ -158,10 +158,26 @@ hurdtunif_module_init()
 /* If a new open with read and/or write permissions is requested,
    restrict to exclusive usage.  */
 static error_t
-check_open_hook (struct trivfs_control *cntl,
-		 struct iouser *user,
-		 int flags)
+check_open_hook (struct trivfs_control *cntl, struct iouser *user, int flags)
 {
+  struct netif *netif;
+  struct hurdtunif *tunif;
+
+  for (netif = netif_list; netif; netif = netif->next)
+  {
+    tunif = (struct hurdtunif*)netif_get_state(netif);
+    if (tunif->cntl == cntl)
+      break;
+  }
+
+  if (netif && flags != O_NORW)
+  {
+    if (tunif->user)
+      return EBUSY;
+    else
+      tunif->user = user;
+  }
+
   return 0;
 }
 
@@ -170,7 +186,17 @@ check_open_hook (struct trivfs_control *cntl,
 static void
 pi_destroy_hook (struct trivfs_protid *cred)
 {
+  struct netif *netif;
+  struct hurdtunif *tunif;
 
+  if (cred->pi.class != tunnel_class)
+    return;
+
+  netif = (struct netif*)cred->po->cntl->hook;
+  tunif = (struct hurdtunif *) netif_get_state(netif);
+
+  if (tunif->user == cred->user)
+    tunif->user = 0;
 }
 
 /* If this variable is set, it is called every time a new peropen
