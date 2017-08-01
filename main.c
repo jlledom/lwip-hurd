@@ -178,8 +178,8 @@ main (int argc, char **argv)
   mach_port_allocate (mach_task_self(),
                           MACH_PORT_RIGHT_RECEIVE, &fsys_identity);
 
-  /* Init the input thread */
-  hurdethif_input_init();
+  /* Init the device modules */
+  hurdethif_module_init();
 
   /* Parse options.  When successful, this configures the interfaces
      before returning */

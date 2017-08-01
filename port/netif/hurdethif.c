@@ -650,7 +650,7 @@ hurdethif_input_thread (void *arg)
  * Init the thread for the incoming data
  */
 error_t
-hurdethif_input_init()
+hurdethif_module_init()
 {
   error_t err;
   etherport_bucket = ports_create_bucket ();
