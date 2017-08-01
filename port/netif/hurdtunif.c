@@ -23,6 +23,9 @@
 #include <hurd/trivfs.h>
 #include <net/if.h>
 #include <net/if_arp.h>
+#include <error.h>
+
+#include <lwip-hurd.h>
 
 /*
  * Update the interface's MTU
@@ -57,7 +60,7 @@ error_t
 hurdtunif_terminate(struct netif *netif)
 {
   /* Free the interface and its hook */
-  mem_free (netif_get_state(netif)->devname);
+  free (netif_get_state(netif)->devname);
   mem_free (netif_get_state(netif));
 
   return 0;
@@ -73,7 +76,8 @@ err_t
 hurdtunif_init(struct netif *netif)
 {
   err_t err = 0;
-  struct ifcommon *tunif;
+  struct hurdtunif *tunif;
+  char *base_name, *name = netif->state;
 
   tunif = mem_malloc(sizeof(struct hurdtunif));
   if (tunif == NULL) {
@@ -82,16 +86,22 @@ hurdtunif_init(struct netif *netif)
   }
   memset(tunif, 0, sizeof(struct hurdtunif));
 
-  tunif->devname = mem_malloc(strlen(netif->state)+1);
-  if (tunif->devname == NULL) {
-    LWIP_DEBUGF(NETIF_DEBUG, ("hurdtunif_init: out of memory\n"));
-    return ERR_MEM;
-  }
-  memset(tunif->devname, 0, strlen(netif->state)+1);
+  base_name = strrchr (name, '/');
+  if (base_name)
+    /* The user provided a path */
+    base_name++;
+  else
+    /* The user provided a name for the tunnel. We'll create it at /dev */
+    base_name = name;
 
-  strncpy(tunif->devname, netif->state, strlen(netif->state));
+  if (base_name != name)
+    tunif->comm.devname = strdup (name);
+  else
+    /* Setting up the translator at /dev/tunX.  */
+    asprintf (&tunif->comm.devname, "/dev/%s", base_name);
+
   netif->state = tunif;
-  tunif->type = ARPHRD_PPP;
+  tunif->comm.type = ARPHRD_PPP;
 
   netif->mtu = 1500;
 
@@ -101,9 +111,35 @@ hurdtunif_init(struct netif *netif)
   netif->flags = NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP;
 
   netif->output = hurdtunif_output;
-  tunif->terminate = hurdtunif_terminate;
-  tunif->update_mtu = hurdtunif_update_mtu;
-  tunif->change_flags = hurdtunif_device_set_flags;
+  tunif->comm.terminate = hurdtunif_terminate;
+  tunif->comm.update_mtu = hurdtunif_update_mtu;
+  tunif->comm.change_flags = hurdtunif_device_set_flags;
+
+  /* Bind the translator to tdev->devname */
+  tunif->underlying = file_name_lookup (tunif->comm.devname,
+                                          O_CREAT|O_NOTRANS, 0664);
+
+  if (tunif->underlying == MACH_PORT_NULL)
+    error (2, 1, "%s", base_name);
+
+  err = trivfs_create_control (tunif->underlying, tunnel_cntlclass,
+                                lwip_bucket, tunnel_class, lwip_bucket,
+                                &tunif->cntl);
+
+  if (! err)
+    {
+      mach_port_t right = ports_get_send_right (tunif->cntl);
+      err = file_set_translator (tunif->underlying, 0, FS_TRANS_EXCL
+                                  | FS_TRANS_SET, 0, 0, 0, right,
+                                  MACH_MSG_TYPE_COPY_SEND);
+      mach_port_deallocate (mach_task_self (), right);
+    }
+
+  if (err)
+    error (2, err, "%s", base_name);
+
+  /* We'll need to get the netif from trivfs operations*/
+  tunif->cntl->hook = netif;
 
   return err;
 }
