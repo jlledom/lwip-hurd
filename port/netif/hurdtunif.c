@@ -108,7 +108,7 @@ hurdtunif_init(struct netif *netif)
   hurdtunif_device_set_flags(netif,
                               IFF_UP|IFF_RUNNING|IFF_POINTOPOINT|IFF_NOARP);
 
-  netif->flags = NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP;
+  netif->flags = NETIF_FLAG_LINK_UP;
 
   netif->output = hurdtunif_output;
   tunif->comm.terminate = hurdtunif_terminate;
@@ -227,6 +227,44 @@ trivfs_S_io_read (struct trivfs_protid *cred,
   return EINVAL;
 }
 
+/*
+ * Should allocate a pbuf and transfer the bytes of the incoming
+ * packet from the interface into the pbuf.
+ *
+ * @param netif the lwip network interface structure for this hurdethif
+ * @return a pbuf filled with the received packet (including MAC header)
+ *         NULL on memory error
+ */
+static struct pbuf *
+hurdtunif_low_level_input(char *data, mach_msg_type_number_t datalen)
+{
+  struct pbuf *p, *q;
+  u16_t off;
+
+  /* We allocate a pbuf chain of pbufs from the pool. */
+  p = pbuf_alloc(PBUF_RAW, datalen, PBUF_POOL);
+
+  if (p != NULL) {
+    /* We iterate over the pbuf chain until we have read the entire
+     * packet into the pbuf. */
+    q = p;
+    off = 0;
+    do
+    {
+      memcpy (q->payload, data, q->len);
+
+      off += q->len;
+
+      if (q->tot_len == q->len)
+        break;
+      else
+        q = q->next;
+    } while(1);
+  }
+
+  return p;
+}
+
 /* Write data to an IO object.  If offset is -1, write at the object
    maintained file pointer.  If the object is not seekable, offset is
    ignored.  The amount successfully written is returned in amount.  A
@@ -243,13 +281,36 @@ trivfs_S_io_write (struct trivfs_protid *cred,
                    off_t offset,
                    mach_msg_type_number_t *amount)
 {
+  struct netif *netif;
+  struct pbuf *p;
+
+  /* Deny access if they have bad credentials. */
   if (!cred)
     return EOPNOTSUPP;
+
+  else if (!(cred->po->openmodes & O_WRITE))
+    return EBADF;
 
   if (cred->pi.class != tunnel_class)
     return EOPNOTSUPP;
 
-  return EINVAL;
+  netif = (struct netif*)cred->po->cntl->hook;
+
+  /* move received packet into a new pbuf */
+  p = hurdtunif_low_level_input(data, datalen);
+  /* if no packet could be read, silently ignore this */
+  if (p != NULL) {
+    /* pass it to the stack */
+    if (netif->input(p, netif) != ERR_OK) {
+      LWIP_DEBUGF(NETIF_DEBUG, ("trivfs_S_io_write: IP input error\n"));
+      pbuf_free(p);
+      p = NULL;
+    }
+  }
+
+  *amount = datalen;
+
+  return 0;
 }
 
 /* Tell how much data can be read from the object without blocking for
