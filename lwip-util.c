@@ -30,7 +30,28 @@
 #include <lwip-hurd.h>
 #include <options.h>
 #include <netif/hurdethif.h>
+#include <netif/hurdtunif.h>
 #include <netif/hurdloopif.h>
+
+static module_init_t
+get_module_init(char *name)
+{
+  module_init_t ret;
+  char *base_name;
+
+  base_name = strrchr(name, '/');
+  if (base_name)
+    base_name++;
+  else
+    base_name = name;
+
+  if (strncmp(base_name, "tun", 3) == 0)
+    ret = hurdtunif_init;
+  else
+    ret = hurdethif_init;
+
+  return ret;
+}
 
 static int
 ipv4config_is_valid(uint32_t addr, uint32_t netmask,
@@ -155,7 +176,7 @@ init_ifs(void *arg)
      * Fifth parameter (in->name) is a hook.
      */
     netifapi_netif_add(netif, &in->address, &in->netmask, &in->gateway,
-            in->dev_name, hurdethif_init, tcpip_input);
+            in->dev_name, get_module_init(in->dev_name), tcpip_input);
 
     /* Add IPv6 configuration */
     netif->ip6_autoconfig_enabled = 1;

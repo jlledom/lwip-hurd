@@ -25,6 +25,8 @@
 
 #include <lwip/netif.h>
 
+typedef err_t (*module_init_t)(struct netif *netif);
+
 void init_ifs(void *arg);
 
 void inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,
