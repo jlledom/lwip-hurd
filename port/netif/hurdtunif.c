@@ -21,11 +21,91 @@
 #include <netif/hurdtunif.h>
 
 #include <hurd/trivfs.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+
+/*
+ * Update the interface's MTU
+ */
+error_t hurdtunif_update_mtu(struct netif *netif, uint32_t mtu)
+{
+  error_t err = 0;
+
+  netif->mtu = mtu;
+
+  return err;
+}
+
+static error_t
+hurdtunif_device_set_flags(struct netif *netif, uint16_t flags)
+{
+  error_t err = 0;
+  struct ifcommon *tunif;
+
+  tunif = netif_get_state(netif);
+  tunif->flags = flags;
+
+  return err;
+}
+
+/*
+ * Release all resources of this netif.
+ *
+ * Returns 0 on success.
+ */
+error_t
+hurdtunif_terminate(struct netif *netif)
+{
+  /* Free the interface and its hook */
+  mem_free (netif_get_state(netif)->devname);
+  mem_free (netif_get_state(netif));
+
+  return 0;
+}
+
+err_t
+hurdtunif_output(struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr)
+{
+  return 0;
+}
 
 err_t
 hurdtunif_init(struct netif *netif)
 {
-  return 0;
+  err_t err = 0;
+  struct ifcommon *tunif;
+
+  tunif = mem_malloc(sizeof(struct hurdtunif));
+  if (tunif == NULL) {
+    LWIP_DEBUGF(NETIF_DEBUG, ("hurdtunif_init: out of memory\n"));
+    return ERR_MEM;
+  }
+  memset(tunif, 0, sizeof(struct hurdtunif));
+
+  tunif->devname = mem_malloc(strlen(netif->state)+1);
+  if (tunif->devname == NULL) {
+    LWIP_DEBUGF(NETIF_DEBUG, ("hurdtunif_init: out of memory\n"));
+    return ERR_MEM;
+  }
+  memset(tunif->devname, 0, strlen(netif->state)+1);
+
+  strncpy(tunif->devname, netif->state, strlen(netif->state));
+  netif->state = tunif;
+  tunif->type = ARPHRD_PPP;
+
+  netif->mtu = 1500;
+
+  hurdtunif_device_set_flags(netif,
+                              IFF_UP|IFF_RUNNING|IFF_POINTOPOINT|IFF_NOARP);
+
+  netif->flags = NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP;
+
+  netif->output = hurdtunif_output;
+  tunif->terminate = hurdtunif_terminate;
+  tunif->update_mtu = hurdtunif_update_mtu;
+  tunif->change_flags = hurdtunif_device_set_flags;
+
+  return err;
 }
 
 /* If a new open with read and/or write permissions is requested,
@@ -35,7 +115,7 @@ check_open_hook (struct trivfs_control *cntl,
 		 struct iouser *user,
 		 int flags)
 {
-  
+  return 0;
 }
 
 /* When a protid is destroyed, check if it is the current user.
@@ -43,7 +123,7 @@ check_open_hook (struct trivfs_control *cntl,
 static void
 pi_destroy_hook (struct trivfs_protid *cred)
 {
-  
+
 }
 
 /* If this variable is set, it is called every time a new peropen

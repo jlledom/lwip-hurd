@@ -26,15 +26,9 @@
 #include <lwip/netif.h>
 #include <netif/ifcommon.h>
 
-struct tun_dev
-{
-  struct tun_dev *next;
-};
-
 struct hurdtunif
 {
   struct ifcommon comm;
-  struct tun_dev tun;
 };
 
 struct port_class *tunnel_cntlclass;
