@@ -18,8 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
-#ifndef LWIP_HURDETHIF_H
-#define LWIP_HURDETHIF_H
+#ifndef LWIP_HURDTUNIF_H
+#define LWIP_HURDTUNIF_H
 
 #include <hurd/ports.h>
 
@@ -38,5 +38,6 @@ struct port_class *tunnel_cntlclass;
 struct port_class *tunnel_class;
 
 err_t hurdtunif_init(struct netif *netif);
+error_t hurdtunif_module_init();
 
-#endif /* LWIP_HURDETHIF_H */
+#endif /* LWIP_HURDTUNIF_H */

@@ -144,6 +144,17 @@ hurdtunif_init(struct netif *netif)
   return err;
 }
 
+error_t
+hurdtunif_module_init()
+{
+  error_t err = 0;
+
+  trivfs_add_control_port_class (&tunnel_cntlclass);
+  trivfs_add_protid_port_class (&tunnel_class);
+
+  return err;
+}
+
 /* If a new open with read and/or write permissions is requested,
    restrict to exclusive usage.  */
 static error_t

@@ -33,6 +33,7 @@
 #include <lwip_iioctl_S.h>
 
 #include <netif/hurdethif.h>
+#include <netif/hurdtunif.h>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -180,6 +181,7 @@ main (int argc, char **argv)
 
   /* Init the device modules */
   hurdethif_module_init();
+  hurdtunif_module_init();
 
   /* Parse options.  When successful, this configures the interfaces
      before returning */
