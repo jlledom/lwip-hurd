@@ -27,6 +27,39 @@
 
 #include <lwip-hurd.h>
 
+static void
+enqueue(struct pbufqueue *q, struct pbuf *p)
+{
+  if(q->tail)
+    q->tail->next = p;
+
+  q->tail = p;
+  q->tail->next = 0;
+
+  if(!q->head)
+    q->head = q->tail;
+
+  q->len++;
+}
+
+static struct pbuf*
+dequeue(struct pbufqueue *q)
+{
+  struct pbuf *ret;
+
+  if(q->head)
+  {
+    ret = q->head;
+    q->head = q->head->next;
+    q->len--;
+  }
+
+  if(!q->head)
+    q->tail = 0;
+
+  return ret;
+}
+
 /*
  * Update the interface's MTU
  */
@@ -59,6 +92,14 @@ hurdtunif_device_set_flags(struct netif *netif, uint16_t flags)
 error_t
 hurdtunif_terminate(struct netif *netif)
 {
+  struct hurdtunif *tunif = (struct hurdtunif*)netif_get_state(netif);
+
+  /* Clear the queue */
+  while (dequeue(&tunif->queue) != 0);
+  pthread_cond_destroy (&tunif->read);
+  pthread_cond_destroy (&tunif->select);
+  pthread_mutex_destroy (&tunif->lock);
+
   /* Free the interface and its hook */
   free (netif_get_state(netif)->devname);
   mem_free (netif_get_state(netif));
@@ -140,6 +181,14 @@ hurdtunif_init(struct netif *netif)
 
   /* We'll need to get the netif from trivfs operations*/
   tunif->cntl->hook = netif;
+
+  /* Output queue initialization */
+  tunif->queue.head = tunif->queue.tail = 0;
+  tunif->queue.len = 0;
+  pthread_mutex_init (&tunif->lock, NULL);
+  pthread_cond_init (&tunif->read, NULL);
+  pthread_cond_init (&tunif->select, NULL);
+  tunif->read_blocked = 0;
 
   return err;
 }

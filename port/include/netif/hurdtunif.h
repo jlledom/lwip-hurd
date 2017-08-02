@@ -26,6 +26,13 @@
 #include <lwip/netif.h>
 #include <netif/ifcommon.h>
 
+struct pbufqueue
+{
+  struct pbuf *head;
+  struct pbuf *tail;
+  uint8_t len;
+};
+
 struct hurdtunif
 {
   struct ifcommon comm;
@@ -33,6 +40,13 @@ struct hurdtunif
   struct trivfs_control *cntl;  /* Identify the tunnel device in use */
   file_t underlying;            /* Underlying node where the tunnel is bound */
   struct iouser *user;          /* Restrict the access to one user at a time */
+  struct pbufqueue queue;       /* Output queue */
+
+  /* Concurrent access to the queue */
+  pthread_mutex_t lock;
+  pthread_cond_t read;
+  pthread_cond_t select;
+  uint8_t read_blocked;
 };
 
 struct port_class *tunnel_cntlclass;
