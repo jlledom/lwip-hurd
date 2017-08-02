@@ -32,7 +32,7 @@
 static struct netif *
 get_if(char *name)
 {
-  char ifname[16];
+  char ifname[IFNAMSIZ];
   struct netif *netif;
 
   memcpy (ifname, name, IFNAMSIZ-1);
