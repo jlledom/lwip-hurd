@@ -184,7 +184,7 @@ hurdtunif_init(struct netif *netif)
                                           O_CREAT|O_NOTRANS, 0664);
 
   if (tunif->underlying == MACH_PORT_NULL)
-    error (2, 1, "%s", base_name);
+    error (2, 1, "%s", tunif->comm.devname);
 
   err = trivfs_create_control (tunif->underlying, tunnel_cntlclass,
                                 lwip_bucket, tunnel_class, lwip_bucket,
