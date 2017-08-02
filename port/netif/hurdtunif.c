@@ -108,9 +108,31 @@ hurdtunif_terminate(struct netif *netif)
 }
 
 err_t
-hurdtunif_output(struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr)
+hurdtunif_output(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
 {
-  return 0;
+  err_t err = 0;
+  struct hurdtunif *tunif;
+
+  tunif = (struct hurdtunif *)netif_get_state(netif);
+
+  pthread_mutex_lock (&tunif->lock);
+
+  /* Avoid unlimited growth.  */
+  if(tunif->queue.len > 128)
+    dequeue(&tunif->queue);
+
+  enqueue(&tunif->queue, p);
+
+  if (tunif->read_blocked)
+  {
+    tunif->read_blocked = 0;
+    pthread_cond_broadcast (&tunif->read);
+    pthread_cond_broadcast (&tunif->select);
+  }
+
+  pthread_mutex_unlock (&tunif->lock);
+
+  return err;
 }
 
 err_t
