@@ -441,13 +441,27 @@ trivfs_S_io_readable (struct trivfs_protid *cred,
                       mach_port_t reply, mach_msg_type_name_t replytype,
                       mach_msg_type_number_t *amount)
 {
+  struct hurdtunif *tunif;
+
   if (!cred)
     return EOPNOTSUPP;
 
   if (cred->pi.class != tunnel_class)
     return EOPNOTSUPP;
 
-  return EINVAL;
+  tunif =
+    (struct hurdtunif*)netif_get_state(((struct netif*)cred->po->cntl->hook));
+
+  pthread_mutex_lock (&tunif->lock);
+
+  if(tunif->queue.head)
+    *amount = tunif->queue.head->tot_len;
+  else
+    *amount = 0;
+
+  pthread_mutex_unlock (&tunif->lock);
+
+  return 0;
 }
 
 /* SELECT_TYPE is the bitwise OR of SELECT_READ, SELECT_WRITE, and SELECT_URG.
