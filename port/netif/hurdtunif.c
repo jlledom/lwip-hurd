@@ -24,6 +24,7 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <error.h>
+#include <sys/mman.h>
 
 #include <lwip-hurd.h>
 
@@ -289,13 +290,61 @@ trivfs_S_io_read (struct trivfs_protid *cred,
                   char **data, mach_msg_type_number_t *data_len,
                   loff_t offs, size_t amount)
 {
+  struct hurdtunif *tunif;
+  struct pbuf *p;
+
   if (!cred)
     return EOPNOTSUPP;
 
   if (cred->pi.class != tunnel_class)
     return EOPNOTSUPP;
 
-  return EINVAL;
+  tunif =
+    (struct hurdtunif*)netif_get_state(((struct netif*)cred->po->cntl->hook));
+
+  pthread_mutex_lock (&tunif->lock);
+
+  while(tunif->queue.len == 0)
+  {
+    if (cred->po->openmodes & O_NONBLOCK)
+    {
+      pthread_mutex_unlock (&tunif->lock);
+      return EWOULDBLOCK;
+    }
+
+    tunif->read_blocked = 1;
+    if (pthread_hurd_cond_wait_np (&tunif->read, &tunif->lock))
+    {
+      pthread_mutex_unlock (&tunif->lock);
+      return EINTR;
+    }
+  }
+
+  p = dequeue(&tunif->queue);
+
+  if (p->tot_len < amount)
+    amount = p->tot_len;
+  if (amount > 0)
+  {
+    /* Possibly allocate a new buffer. */
+    if (*data_len < amount)
+    {
+      *data = mmap (0, amount, PROT_READ|PROT_WRITE, MAP_ANON, 0, 0);
+      if (*data == MAP_FAILED)
+      {
+        pthread_mutex_unlock (&tunif->lock);
+        return ENOMEM;
+      }
+    }
+
+    /* Copy the constant data into the buffer. */
+    memcpy ((char *) *data, p->payload, amount);
+  }
+  *data_len = amount;
+
+  pthread_mutex_unlock (&tunif->lock);
+
+  return 0;
 }
 
 /*
