@@ -471,17 +471,62 @@ trivfs_S_io_readable (struct trivfs_protid *cred,
    specific requests sent.  */
 static error_t
 io_select_common (struct trivfs_protid *cred,
-		  mach_port_t reply,
-		  mach_msg_type_name_t reply_type,
-		  struct timespec *tsp, int *type)
+                  mach_port_t reply,
+                  mach_msg_type_name_t reply_type,
+                  struct timespec *tsp, int *type)
 {
+  error_t err;
+  struct hurdtunif *tunif;
+
   if (!cred)
     return EOPNOTSUPP;
 
   if (cred->pi.class != tunnel_class)
     return EOPNOTSUPP;
 
-  return EINVAL;
+  /* We only deal with SELECT_READ and SELECT_WRITE here.  */
+  *type &= SELECT_READ | SELECT_WRITE;
+
+  if (*type == 0)
+    return 0;
+
+  tunif =
+    (struct hurdtunif*)netif_get_state(((struct netif*)cred->po->cntl->hook));
+
+  pthread_mutex_lock (&tunif->lock);
+
+  if (*type & SELECT_WRITE)
+  {
+    /* We are always writable.  */
+    if (tunif->queue.len == 0)
+      *type &= ~SELECT_READ;
+    pthread_mutex_unlock (&tunif->lock);
+    return 0;
+  }
+
+  while (1)
+  {
+    if (tunif->queue.len != 0)
+    {
+      *type = SELECT_READ;
+      pthread_mutex_unlock (&tunif->lock);
+      return 0;
+    }
+
+    ports_interrupt_self_on_port_death (cred, reply);
+    tunif->read_blocked = 1;
+    err = pthread_hurd_cond_timedwait_np(&tunif->select, &tunif->lock, tsp);
+    if (err)
+    {
+      *type = 0;
+      pthread_mutex_unlock (&tunif->lock);
+
+      if (err == ETIMEDOUT)
+        err = 0;
+
+      return err;
+    }
+  }
 }
 
 error_t
