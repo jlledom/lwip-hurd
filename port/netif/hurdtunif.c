@@ -54,7 +54,8 @@ dequeue(struct pbufqueue *q)
     q->head = q->head->next;
     ret->next = 0;
     q->len--;
-  }
+  } else
+    ret = 0;
 
   if(!q->head)
     q->tail = 0;
