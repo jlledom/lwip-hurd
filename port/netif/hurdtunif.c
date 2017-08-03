@@ -52,6 +52,7 @@ dequeue(struct pbufqueue *q)
   {
     ret = q->head;
     q->head = q->head->next;
+    ret->next = 0;
     q->len--;
   }
 
@@ -93,10 +94,12 @@ hurdtunif_device_set_flags(struct netif *netif, uint16_t flags)
 error_t
 hurdtunif_terminate(struct netif *netif)
 {
+  struct pbuf *p;
   struct hurdtunif *tunif = (struct hurdtunif*)netif_get_state(netif);
 
   /* Clear the queue */
-  while (dequeue(&tunif->queue) != 0);
+  while ((p = dequeue(&tunif->queue)) != 0)
+    pbuf_free(p);
   pthread_cond_destroy (&tunif->read);
   pthread_cond_destroy (&tunif->select);
   pthread_mutex_destroy (&tunif->lock);
@@ -113,16 +116,34 @@ hurdtunif_output(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
 {
   err_t err = 0;
   struct hurdtunif *tunif;
+  struct pbuf *pcopy, *oldest;
 
   tunif = (struct hurdtunif *)netif_get_state(netif);
+
+  /*
+   * The stack is responsible for allocating and freeing the pbuf p.
+   * Sometimes it keeps the pbuf for the case it needs to be retransmitted,
+   * but at other times it frees the pbuf while it's still in our queue,
+   * that's why we need a copy.
+   */
+  pcopy = pbuf_alloc(PBUF_IP, p->tot_len, PBUF_RAM);
+  if (pcopy != NULL)
+    if (pbuf_copy(pcopy, p) != ERR_OK)
+    {
+      pbuf_free(pcopy);
+      pcopy = NULL;
+    }
 
   pthread_mutex_lock (&tunif->lock);
 
   /* Avoid unlimited growth.  */
   if(tunif->queue.len > 128)
-    dequeue(&tunif->queue);
+  {
+    oldest = dequeue(&tunif->queue);
+    pbuf_free(oldest);
+  }
 
-  enqueue(&tunif->queue, p);
+  enqueue(&tunif->queue, pcopy);
 
   if (tunif->read_blocked)
   {
@@ -332,6 +353,7 @@ trivfs_S_io_read (struct trivfs_protid *cred,
       *data = mmap (0, amount, PROT_READ|PROT_WRITE, MAP_ANON, 0, 0);
       if (*data == MAP_FAILED)
       {
+        pbuf_free(p);
         pthread_mutex_unlock (&tunif->lock);
         return ENOMEM;
       }
@@ -341,6 +363,7 @@ trivfs_S_io_read (struct trivfs_protid *cred,
     memcpy ((char *) *data, p->payload, amount);
   }
   *data_len = amount;
+  pbuf_free(p);
 
   pthread_mutex_unlock (&tunif->lock);
 
