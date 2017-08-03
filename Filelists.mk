@@ -79,50 +79,12 @@ APIFILES=api_lib.c \
 	tcpip.c
 
 # NETIFFILES: Files implementing various generic network interface functions
-NETIFFILES=ethernet.c \
-	slipif.c
-
-# SIXLOWPAN: 6LoWPAN
-SIXLOWPAN=lowpan6.c \
-
-# PPPFILES: PPP
-PPPFILES=auth.c \
-	ccp.c \
-	chap-md5.c \
-	chap_ms.c \
-	chap-new.c \
-	demand.c \
-	eap.c \
-	ecp.c \
-	eui64.c \
-	fsm.c \
-	ipcp.c \
-	ipv6cp.c \
-	lcp.c \
-	magic.c \
-	mppe.c \
-	multilink.c \
-	ppp.c \
-	pppapi.c \
-	pppcrypt.c \
-	pppoe.c \
-	pppol2tp.c \
-	pppos.c \
-	upap.c \
-	utils.c \
-	vj.c \
-	arc4.c \
-	des.c \
-	md4.c \
-	md5.c \
-	sha1.c
+NETIFFILES=ethernet.c
 
 # LWIPALLFILES: All LWIP files without apps
 LWIPALLFILES=$(COREFILES) \
 	$(CORE4FILES) \
 	$(CORE6FILES) \
 	$(APIFILES) \
-	$(NETIFFILES) \
-	$(PPPFILES) \
-	$(SIXLOWPAN)
+	$(NETIFFILES)
 
