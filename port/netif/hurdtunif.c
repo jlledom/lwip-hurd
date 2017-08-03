@@ -186,7 +186,7 @@ hurdtunif_init(struct netif *netif)
     asprintf (&tunif->comm.devname, "/dev/%s", base_name);
 
   netif->state = tunif;
-  tunif->comm.type = ARPHRD_PPP;
+  tunif->comm.type = ARPHRD_TUNNEL;
 
   netif->mtu = 1500;
 
