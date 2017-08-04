@@ -215,14 +215,14 @@ hurdtunif_init(struct netif *netif)
   if (! err)
     {
       mach_port_t right = ports_get_send_right (tunif->cntl);
-      err = file_set_translator (tunif->underlying, 0, FS_TRANS_EXCL
-                                  | FS_TRANS_SET, 0, 0, 0, right,
-                                  MACH_MSG_TYPE_COPY_SEND);
+      err = file_set_translator (tunif->underlying, 0,
+                                  FS_TRANS_SET | FS_TRANS_ORPHAN, 0, 0, 0,
+                                  right, MACH_MSG_TYPE_COPY_SEND);
       mach_port_deallocate (mach_task_self (), right);
     }
 
   if (err)
-    error (2, err, "%s", base_name);
+    error (2, err, "%s", tunif->comm.devname);
 
   /* We'll need to get the netif from trivfs operations*/
   tunif->cntl->hook = netif;
@@ -508,6 +508,8 @@ io_select_common (struct trivfs_protid *cred,
   if (cred->pi.class != tunnel_class)
     return EOPNOTSUPP;
 
+  ports_interrupt_self_on_port_death (cred, reply);
+
   /* We only deal with SELECT_READ and SELECT_WRITE here.  */
   *type &= SELECT_READ | SELECT_WRITE;
 
@@ -537,7 +539,6 @@ io_select_common (struct trivfs_protid *cred,
       return 0;
     }
 
-    ports_interrupt_self_on_port_death (cred, reply);
     tunif->read_blocked = 1;
     err = pthread_hurd_cond_timedwait_np(&tunif->select, &tunif->lock, tsp);
     if (err)
