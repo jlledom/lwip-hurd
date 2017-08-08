@@ -1773,6 +1773,16 @@
 #endif
 
 /**
+ * LWIP_SOCKET_OPEN_COUNT==1: Number of sockets is not limited to MEMP_NUM_NETCONN.
+ * When enabled, sockets are allocated in the heap and the amount of sockets is
+ * only limited by the heap size. Handle with care regarding execution speed.
+ * To use this, MEMP_MEM_MALLOC also has to be enabled.
+ */
+#if !defined LWIP_SOCKET_OPEN_COUNT || defined __DOXYGEN__
+#define LWIP_SOCKET_OPEN_COUNT              0
+#endif
+
+/**
  * LWIP_TCP_KEEPALIVE==1: Enable TCP_KEEPIDLE, TCP_KEEPINTVL and TCP_KEEPCNT
  * options processing. Note that TCP_KEEPIDLE and TCP_KEEPINTVL have to be set
  * in seconds. (does not require sockets.c, and will affect tcp.c)
