@@ -198,6 +198,12 @@ static void sockaddr_to_ipaddr_port(const struct sockaddr* sockaddr, ip_addr_t* 
 
 /** Contains all internal pointers and states used for a socket */
 struct lwip_sock {
+#if LWIP_SOCKET_OPEN_COUNT
+  /** Next element in the linked list */
+  struct lwip_sock *next;
+  /** Socket number*/
+  int count;
+#endif /* LWIP_SOCKET_OPEN_COUNT */
   /** sockets currently are built on netconns, each socket has one netconn */
   struct netconn *conn;
   /** data that was left from the previous read */
@@ -281,8 +287,13 @@ static void lwip_socket_unregister_membership(int s, const ip4_addr_t *if_addr, 
 static void lwip_socket_drop_registered_memberships(int s);
 #endif /* LWIP_IGMP */
 
+#if LWIP_SOCKET_OPEN_COUNT
+/** The global linked list of available sockets */
+static struct lwip_sock *sockets = NULL;
+#else /* LWIP_SOCKET_OPEN_COUNT */
 /** The global array of available sockets */
 static struct lwip_sock sockets[NUM_SOCKETS];
+#endif /* LWIP_SOCKET_OPEN_COUNT */
 /** The global list of tasks waiting for select */
 static struct lwip_select_cb *select_cb_list;
 /** This counter is increased from lwip_select when the list is changed
@@ -353,6 +364,12 @@ get_socket(int s)
 
   s -= LWIP_SOCKET_OFFSET;
 
+#if LWIP_SOCKET_OPEN_COUNT
+  for(sock = sockets; sock != NULL; sock = sock->next) {
+    if(sock->count == s)
+      break;
+  }
+#else /* LWIP_SOCKET_OPEN_COUNT */
   if ((s < 0) || (s >= NUM_SOCKETS)) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("get_socket(%d): invalid\n", s + LWIP_SOCKET_OFFSET));
     set_errno(EBADF);
@@ -360,8 +377,9 @@ get_socket(int s)
   }
 
   sock = &sockets[s];
+#endif /* LWIP_SOCKET_OPEN_COUNT */
 
-  if (!sock->conn) {
+  if (!sock || !sock->conn) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("get_socket(%d): not active\n", s + LWIP_SOCKET_OFFSET));
     set_errno(EBADF);
     return NULL;
@@ -379,6 +397,14 @@ get_socket(int s)
 static struct lwip_sock *
 tryget_socket(int s)
 {
+#if LWIP_SOCKET_OPEN_COUNT
+  struct lwip_sock *sock;
+  for(sock = sockets; sock != NULL; sock = sock->next) {
+    if(sock->count == s)
+      break;
+  }
+  return sock;
+#else /* LWIP_SOCKET_OPEN_COUNT */
   s -= LWIP_SOCKET_OFFSET;
   if ((s < 0) || (s >= NUM_SOCKETS)) {
     return NULL;
@@ -387,6 +413,7 @@ tryget_socket(int s)
     return NULL;
   }
   return &sockets[s];
+#endif /* LWIP_SOCKET_OPEN_COUNT */
 }
 
 /**
@@ -401,8 +428,46 @@ static int
 alloc_socket(struct netconn *newconn, int accepted)
 {
   int i;
+#if LWIP_SOCKET_OPEN_COUNT
+  struct lwip_sock *newsock, **it;
+#endif /* LWIP_SOCKET_OPEN_COUNT */
+
   SYS_ARCH_DECL_PROTECT(lev);
 
+#if LWIP_SOCKET_OPEN_COUNT
+    newsock = (struct lwip_sock*)mem_malloc(sizeof(struct lwip_sock));
+    if(newsock == NULL) {
+      return -1;
+    }
+    newsock->conn       = newconn;
+    newsock->lastdata   = NULL;
+    newsock->lastoffset = 0;
+    newsock->rcvevent   = 0;
+    /* TCP sendbuf is empty, but the socket is not yet writable until connected
+     * (unless it has been created by accept()). */
+    newsock->sendevent  = (NETCONNTYPE_GROUP(newconn->type) == NETCONN_TCP ? (accepted != 0) : 1);
+    newsock->errevent   = 0;
+    newsock->err        = 0;
+    newsock->select_waiting = 0;
+  /* Protect socket list */
+    SYS_ARCH_PROTECT(lev);
+    it = &sockets;
+    i = LWIP_SOCKET_OFFSET;
+    while(*it) {
+      if((*it)->count != i) {
+        /* There's a gap in the list, fill it */
+        break;
+      }
+      i++;
+      it = &(*it)->next;
+    }
+    /* Add the new socket in the first gap found or in the end */
+    newsock->count = i;
+    newsock->next = (*it);
+    (*it) = newsock;
+    SYS_ARCH_UNPROTECT(lev);
+    return i;
+#else /* LWIP_SOCKET_OPEN_COUNT */
   /* allocate a new socket identifier */
   for (i = 0; i < NUM_SOCKETS; ++i) {
     /* Protect socket array */
@@ -426,6 +491,7 @@ alloc_socket(struct netconn *newconn, int accepted)
     SYS_ARCH_UNPROTECT(lev);
   }
   return -1;
+#endif /* LWIP_SOCKET_OPEN_COUNT */
 }
 
 /** Free a socket. The socket's netconn must have been
@@ -437,9 +503,14 @@ alloc_socket(struct netconn *newconn, int accepted)
 static void
 free_socket(struct lwip_sock *sock, int is_tcp)
 {
-  void *lastdata;
+  void *lastdata = sock->lastdata;
+#if LWIP_SOCKET_OPEN_COUNT
+  struct lwip_sock **it = &sockets;
 
-  lastdata         = sock->lastdata;
+  while(*it != sock) it = &(*it)->next;
+  *it = (*it)->next;
+  mem_free(sock);
+#else /* LWIP_SOCKET_OPEN_COUNT */
   sock->lastdata   = NULL;
   sock->lastoffset = 0;
   sock->err        = 0;
@@ -447,6 +518,7 @@ free_socket(struct lwip_sock *sock, int is_tcp)
   /* Protect socket array */
   SYS_ARCH_SET(sock->conn, NULL);
   /* don't use 'sock' after this line, as another task might have allocated it */
+#endif /* LWIP_SOCKET_OPEN_COUNT */
 
   if (lastdata != NULL) {
     if (is_tcp) {
@@ -507,7 +579,9 @@ lwip_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
     sock_set_errno(sock, ENFILE);
     return -1;
   }
+#if !LWIP_SOCKET_OPEN_COUNT
   LWIP_ASSERT("invalid socket index", (newsock >= LWIP_SOCKET_OFFSET) && (newsock < NUM_SOCKETS + LWIP_SOCKET_OFFSET));
+#endif /* !LWIP_SOCKET_OPEN_COUNT */
   LWIP_ASSERT("newconn->callback == event_callback", newconn->callback == event_callback);
   nsock = &sockets[newsock - LWIP_SOCKET_OFFSET];
 
