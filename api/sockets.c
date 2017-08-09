@@ -479,6 +479,8 @@ alloc_socket(struct netconn *newconn, int accepted)
   i += LWIP_SOCKET_OFFSET;
 #endif /* LWIP_SOCKET_OPEN_COUNT */
 
+  LWIP_ASSERT("i >= 0", i >= 0);
+
   newsock->lastdata   = NULL;
   newsock->lastoffset = 0;
   newsock->rcvevent   = 0;
