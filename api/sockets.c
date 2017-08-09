@@ -364,18 +364,22 @@ get_socket(int s)
 
   s -= LWIP_SOCKET_OFFSET;
 
+  if ((s < 0)
+#if !LWIP_SOCKET_OPEN_COUNT
+      || (s >= NUM_SOCKETS)
+#endif /* !LWIP_SOCKET_OPEN_COUNT */
+      ) {
+    LWIP_DEBUGF(SOCKETS_DEBUG, ("get_socket(%d): invalid\n", s + LWIP_SOCKET_OFFSET));
+    set_errno(EBADF);
+    return NULL;
+  }
+
 #if LWIP_SOCKET_OPEN_COUNT
   for(sock = sockets; sock != NULL; sock = sock->next) {
     if(sock->count == s)
       break;
   }
 #else /* LWIP_SOCKET_OPEN_COUNT */
-  if ((s < 0) || (s >= NUM_SOCKETS)) {
-    LWIP_DEBUGF(SOCKETS_DEBUG, ("get_socket(%d): invalid\n", s + LWIP_SOCKET_OFFSET));
-    set_errno(EBADF);
-    return NULL;
-  }
-
   sock = &sockets[s];
 #endif /* LWIP_SOCKET_OPEN_COUNT */
 
@@ -397,6 +401,14 @@ get_socket(int s)
 static struct lwip_sock *
 tryget_socket(int s)
 {
+  s -= LWIP_SOCKET_OFFSET;
+  if ((s < 0)
+#if !LWIP_SOCKET_OPEN_COUNT
+      || (s >= NUM_SOCKETS)
+#endif /* !LWIP_SOCKET_OPEN_COUNT */
+      ) {
+    return NULL;
+  }
 #if LWIP_SOCKET_OPEN_COUNT
   struct lwip_sock *sock;
   for(sock = sockets; sock != NULL; sock = sock->next) {
@@ -405,10 +417,6 @@ tryget_socket(int s)
   }
   return sock;
 #else /* LWIP_SOCKET_OPEN_COUNT */
-  s -= LWIP_SOCKET_OFFSET;
-  if ((s < 0) || (s >= NUM_SOCKETS)) {
-    return NULL;
-  }
   if (!sockets[s].conn) {
     return NULL;
   }
