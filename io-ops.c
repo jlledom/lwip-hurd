@@ -210,6 +210,13 @@ lwip_io_select_common (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
+  if(user->sock->sockno > FD_SETSIZE)
+  {
+    *select_type = 0;
+    /* Glibc doesn't expect to get an error in this case */
+    return ESUCCESS;
+  }
+
   ports_interrupt_self_on_notification (user, reply, MACH_NOTIFY_DEAD_NAME);
 
   sock = user->sock->sockno;
