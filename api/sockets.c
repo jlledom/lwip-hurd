@@ -428,70 +428,68 @@ static int
 alloc_socket(struct netconn *newconn, int accepted)
 {
   int i;
+  struct lwip_sock *newsock = NULL;
 #if LWIP_SOCKET_OPEN_COUNT
-  struct lwip_sock *newsock, **it;
+  struct lwip_sock **it;
 #endif /* LWIP_SOCKET_OPEN_COUNT */
 
   SYS_ARCH_DECL_PROTECT(lev);
 
 #if LWIP_SOCKET_OPEN_COUNT
-    newsock = (struct lwip_sock*)mem_malloc(sizeof(struct lwip_sock));
-    if(newsock == NULL) {
-      return -1;
-    }
-    newsock->conn       = newconn;
-    newsock->lastdata   = NULL;
-    newsock->lastoffset = 0;
-    newsock->rcvevent   = 0;
-    /* TCP sendbuf is empty, but the socket is not yet writable until connected
-     * (unless it has been created by accept()). */
-    newsock->sendevent  = (NETCONNTYPE_GROUP(newconn->type) == NETCONN_TCP ? (accepted != 0) : 1);
-    newsock->errevent   = 0;
-    newsock->err        = 0;
-    newsock->select_waiting = 0;
+  newsock = (struct lwip_sock*)mem_malloc(sizeof(struct lwip_sock));
+  if(!newsock) {
+    return -1;
+  }
   /* Protect socket list */
-    SYS_ARCH_PROTECT(lev);
-    it = &sockets;
-    i = LWIP_SOCKET_OFFSET;
-    while(*it) {
-      if((*it)->count != i) {
-        /* There's a gap in the list, fill it */
-        break;
-      }
-      i++;
-      it = &(*it)->next;
+  SYS_ARCH_PROTECT(lev);
+  it = &sockets;
+  i = LWIP_SOCKET_OFFSET;
+  while(*it) {
+    if((*it)->count != i) {
+      /* There's a gap in the list, fill it */
+      break;
     }
-    /* Add the new socket in the first gap found or in the end */
-    newsock->count = i;
-    newsock->next = (*it);
-    (*it) = newsock;
-    SYS_ARCH_UNPROTECT(lev);
-    return i;
+    i++;
+    it = &(*it)->next;
+  }
+  /* Add the new socket in the first gap found or in the end */
+  newsock->count = i;
+  newsock->next = (*it);
+  (*it) = newsock;
+  newsock->conn = newconn;
+  SYS_ARCH_UNPROTECT(lev);
 #else /* LWIP_SOCKET_OPEN_COUNT */
-  /* allocate a new socket identifier */
+   /* allocate a new socket identifier */
   for (i = 0; i < NUM_SOCKETS; ++i) {
     /* Protect socket array */
     SYS_ARCH_PROTECT(lev);
     if (!sockets[i].conn) {
-      sockets[i].conn       = newconn;
+      newsock = &sockets[i];
+      sockets[i].conn = newconn;
       /* The socket is not yet known to anyone, so no need to protect
          after having marked it as used. */
       SYS_ARCH_UNPROTECT(lev);
-      sockets[i].lastdata   = NULL;
-      sockets[i].lastoffset = 0;
-      sockets[i].rcvevent   = 0;
-      /* TCP sendbuf is empty, but the socket is not yet writable until connected
-       * (unless it has been created by accept()). */
-      sockets[i].sendevent  = (NETCONNTYPE_GROUP(newconn->type) == NETCONN_TCP ? (accepted != 0) : 1);
-      sockets[i].errevent   = 0;
-      sockets[i].err        = 0;
-      sockets[i].select_waiting = 0;
-      return i + LWIP_SOCKET_OFFSET;
+      break;
     }
     SYS_ARCH_UNPROTECT(lev);
   }
-  return -1;
+  if(!newsock) {
+    return -1;
+  }
+  i += LWIP_SOCKET_OFFSET;
 #endif /* LWIP_SOCKET_OPEN_COUNT */
+
+  newsock->lastdata   = NULL;
+  newsock->lastoffset = 0;
+  newsock->rcvevent   = 0;
+  /* TCP sendbuf is empty, but the socket is not yet writable until connected
+   * (unless it has been created by accept()). */
+  newsock->sendevent  = (NETCONNTYPE_GROUP(newconn->type) == NETCONN_TCP ? (accepted != 0) : 1);
+  newsock->errevent   = 0;
+  newsock->err        = 0;
+  newsock->select_waiting = 0;
+
+  return i;
 }
 
 /** Free a socket. The socket's netconn must have been
