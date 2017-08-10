@@ -23,8 +23,11 @@
 //An OS is present
 #define NO_SYS    0
 
-//Do not rename Sockets API functions
+/* Don't rename Sockets API functions */
 #define LWIP_COMPAT_SOCKETS   0
+
+/* Don't limit the number of sockets */
+#define LWIP_SOCKET_OPEN_COUNT  1
 
 //Use Glibc malloc()/free()
 #define MEM_LIBC_MALLOC   1
@@ -37,9 +40,6 @@
 
 /* Randomize local ports */
 #define LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS  1
-
-/* Available sockets */
-#define MEMP_NUM_NETCONN  256
 
 // Glibc sends more than one packet in a row during an ARP resolution
 #define ARP_QUEUEING    1
