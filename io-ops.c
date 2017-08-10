@@ -202,7 +202,7 @@ lwip_io_select_common (struct sock_user *user,
 		  mach_msg_type_name_t reply_type,
 		  struct timeval *tv, int *select_type)
 {
-  fd_set readset, writeset, exceptset;
+  size_t setsize;
   fd_set *lreadset, *lwriteset, *lexceptset;
   int ret;
   int sock;
@@ -210,36 +210,39 @@ lwip_io_select_common (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
-  if(user->sock->sockno > FD_SETSIZE)
-  {
-    *select_type = 0;
-    /* Glibc doesn't expect to get an error in this case */
-    return ESUCCESS;
-  }
-
   ports_interrupt_self_on_notification (user, reply, MACH_NOTIFY_DEAD_NAME);
 
   sock = user->sock->sockno;
-
-  FD_ZERO(&readset);
-  FD_ZERO(&writeset);
-  FD_ZERO(&exceptset);
+  setsize = ((sock / (8*(int)sizeof(fd_mask))) + 1) > FD_SETSIZE ?
+              ((sock / (8*(int)sizeof(fd_mask))) + 1) : FD_SETSIZE;
   lreadset = lwriteset = lexceptset = 0;
 
   if(*select_type & SELECT_READ)
   {
-    FD_SET(sock, &readset);
-    lreadset = &readset;
+    lreadset = (fd_set*)malloc(setsize);
+    if(lreadset)
+    {
+      memset(lreadset, 0, setsize);
+      FD_SET(sock, lreadset);
+    }
   }
   if(*select_type & SELECT_WRITE)
   {
-    FD_SET(sock, &writeset);
-    lwriteset = &writeset;
+    lwriteset = (fd_set*)malloc(setsize);
+    if(lwriteset)
+    {
+      memset(lwriteset, 0, setsize);
+      FD_SET(sock, lwriteset);
+    }
   }
   if(*select_type & SELECT_URG)
   {
-    FD_SET(sock, &exceptset);
-    lexceptset = &exceptset;
+    lexceptset = (fd_set*)malloc(setsize);
+    if(lexceptset)
+    {
+      memset(lexceptset, 0, setsize);
+      FD_SET(sock, lexceptset);
+    }
   }
 
   *select_type = 0;
@@ -247,14 +250,23 @@ lwip_io_select_common (struct sock_user *user,
   ret = lwip_select(sock+1, lreadset, lwriteset, lexceptset, tv);
   if(ret > 0)
   {
-    if(FD_ISSET(sock, &readset))
+    if(lreadset && FD_ISSET(sock, lreadset))
+    {
       *select_type |= SELECT_READ;
+      free(lreadset);
+    }
 
-    if(FD_ISSET(sock, &writeset))
+    if(lwriteset && FD_ISSET(sock, lwriteset))
+    {
       *select_type |= SELECT_WRITE;
+      free(lwriteset);
+    }
 
-    if(FD_ISSET(sock, &exceptset))
+    if(lexceptset && FD_ISSET(sock, lexceptset))
+    {
       *select_type |= SELECT_URG;
+      free(lexceptset);
+    }
   }
 
   return errno;

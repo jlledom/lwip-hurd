@@ -1386,13 +1386,15 @@ lwip_selscan(int maxfdp1, fd_set *readset_in, fd_set *writeset_in, fd_set *excep
              fd_set *readset_out, fd_set *writeset_out, fd_set *exceptset_out)
 {
   int i, nready = 0;
-  fd_set lreadset, lwriteset, lexceptset;
+  size_t setsize = ((maxfdp1 / (8*(int)sizeof(fd_mask))) + 1) > FD_SETSIZE ?
+                    ((maxfdp1 / (8*(int)sizeof(fd_mask))) + 1) : FD_SETSIZE;
+  fd_mask lreadset[setsize], lwriteset[setsize], lexceptset[setsize];
   struct lwip_sock *sock;
   SYS_ARCH_DECL_PROTECT(lev);
 
-  FD_ZERO(&lreadset);
-  FD_ZERO(&lwriteset);
-  FD_ZERO(&lexceptset);
+  memset(&lreadset, 0, setsize);
+  memset(&lwriteset, 0, setsize);
+  memset(&lexceptset, 0, setsize);
 
   /* Go through each socket in each list to count number of sockets which
      currently match */
@@ -1426,19 +1428,19 @@ lwip_selscan(int maxfdp1, fd_set *readset_in, fd_set *writeset_in, fd_set *excep
       /* ... then examine it: */
       /* See if netconn of this socket is ready for read */
       if (readset_in && FD_ISSET(i, readset_in) && ((lastdata != NULL) || (rcvevent > 0))) {
-        FD_SET(i, &lreadset);
+        FD_SET(i, (fd_set*)&lreadset);
         LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_selscan: fd=%d ready for reading\n", i));
         nready++;
       }
       /* See if netconn of this socket is ready for write */
       if (writeset_in && FD_ISSET(i, writeset_in) && (sendevent != 0)) {
-        FD_SET(i, &lwriteset);
+        FD_SET(i, (fd_set*)&lwriteset);
         LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_selscan: fd=%d ready for writing\n", i));
         nready++;
       }
       /* See if netconn of this socket had an error */
       if (exceptset_in && FD_ISSET(i, exceptset_in) && (errevent != 0)) {
-        FD_SET(i, &lexceptset);
+        FD_SET(i, (fd_set*)&lexceptset);
         LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_selscan: fd=%d ready for exception\n", i));
         nready++;
       }
@@ -1448,9 +1450,9 @@ lwip_selscan(int maxfdp1, fd_set *readset_in, fd_set *writeset_in, fd_set *excep
     }
   }
   /* copy local sets to the ones provided as arguments */
-  *readset_out = lreadset;
-  *writeset_out = lwriteset;
-  *exceptset_out = lexceptset;
+  memcpy(readset_out, &lreadset, setsize);
+  memcpy(writeset_out, &lwriteset, setsize);
+  memcpy(exceptset_out, &lexceptset, setsize);
 
   LWIP_ASSERT("nready >= 0", nready >= 0);
   return nready;
@@ -1462,7 +1464,9 @@ lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 {
   u32_t waitres = 0;
   int nready;
-  fd_set lreadset, lwriteset, lexceptset;
+  size_t setsize = ((maxfdp1 / (8*(int)sizeof(fd_mask))) + 1) > FD_SETSIZE ?
+                    ((maxfdp1 / (8*(int)sizeof(fd_mask))) + 1) : FD_SETSIZE;
+  fd_mask lreadset[setsize], lwriteset[setsize], lexceptset[setsize];
   u32_t msectimeout;
   struct lwip_select_cb select_cb;
   int i;
@@ -1479,7 +1483,8 @@ lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 
   /* Go through each socket in each list to count number of sockets which
      currently match */
-  nready = lwip_selscan(maxfdp1, readset, writeset, exceptset, &lreadset, &lwriteset, &lexceptset);
+  nready = lwip_selscan(maxfdp1, readset, writeset, exceptset,
+                        (fd_set*)lreadset, (fd_set*)lwriteset, (fd_set*)lexceptset);
 
   /* If we don't have any current events, then suspend if we are supposed to */
   if (!nready) {
@@ -1552,7 +1557,8 @@ lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     if (nready >= 0) {
       /* Call lwip_selscan again: there could have been events between
          the last scan (without us on the list) and putting us on the list! */
-      nready = lwip_selscan(maxfdp1, readset, writeset, exceptset, &lreadset, &lwriteset, &lexceptset);
+      nready = lwip_selscan(maxfdp1, readset, writeset, exceptset,
+                            (fd_set*)lreadset, (fd_set*)lwriteset, (fd_set*)lexceptset);
       if (!nready) {
         /* Still none ready, just wait to be woken */
         if (timeout == 0) {
@@ -1636,20 +1642,21 @@ lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     }
 
     /* See what's set */
-    nready = lwip_selscan(maxfdp1, readset, writeset, exceptset, &lreadset, &lwriteset, &lexceptset);
+    nready = lwip_selscan(maxfdp1, readset, writeset, exceptset,
+                          (fd_set*)lreadset, (fd_set*)lwriteset, (fd_set*)lexceptset);
   }
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_select: nready=%d\n", nready));
 return_copy_fdsets:
   set_errno(0);
   if (readset) {
-    *readset = lreadset;
+    memcpy(readset, &lreadset, setsize);
   }
   if (writeset) {
-    *writeset = lwriteset;
+    memcpy(writeset, &lwriteset, setsize);
   }
   if (exceptset) {
-    *exceptset = lexceptset;
+    memcpy(exceptset, &lexceptset, setsize);
   }
   return nready;
 }
