@@ -25,6 +25,7 @@
 
 #include <lwip-util.h>
 
+/* Set the device flags */
 static error_t
 hurdloopif_device_set_flags(struct netif *netif, uint16_t flags)
 {
@@ -64,16 +65,10 @@ hurdloopif_terminate(struct netif *netif)
 }
 
 /*
- * Should be called at the beginning of the program to set up the
- * network interface. It calls the function low_level_init() to do the
- * actual setup of the hardware.
+ * Set up the LwIP loopback interface
  *
- * This function should be passed as a parameter to netif_add().
- *
- * @param netif the lwip network interface structure for this hurdethif
- * @return ERR_OK if the loopif is initialized
- *         ERR_MEM if private data couldn't be allocated
- *         any other err_t on error
+ * This function should be passed as a parameter to netif_add() so it may be
+ * called many times.
  */
 err_t
 hurdloopif_init(struct netif *netif)

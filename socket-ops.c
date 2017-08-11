@@ -47,6 +47,7 @@ lwip_S_socket_create (struct trivfs_protid *master,
       && sock_type != SOCK_RAW)
     return EPROTOTYPE;
 
+  /* The class tell us which domain must we use */
   if (master->pi.class == lwip_protid_portclasses[PORTCLASS_INET])
     domain = PF_INET;
   else
@@ -128,6 +129,7 @@ lwip_S_socket_accept (struct sock_user *user,
 	}
   else
   {
+    /* Set the peer's address for the caller */
     err = make_sockaddr_port (newsock->sockno, 1, addr_port, addr_port_type);
     if(err)
       return err;
@@ -224,6 +226,9 @@ lwip_S_socket_connect2 (struct sock_user *user,
   return EOPNOTSUPP;
 }
 
+/*
+ * Receive address data, create a libports object and return its port
+ */
 error_t
 lwip_S_socket_create_address (mach_port_t server,
 			 int sockaddr_type,
@@ -269,6 +274,9 @@ lwip_S_socket_fabricate_address (mach_port_t server,
   return EOPNOTSUPP;
 }
 
+/*
+ * Receive a libports object and return its data
+ */
 error_t
 lwip_S_socket_whatis_address (struct sock_addr *addr,
 			 int *type,
@@ -432,13 +440,14 @@ lwip_S_socket_recv (struct sock_user *user,
       munmap (*data + round_page (*datalen),
     round_page (amount) - round_page (*datalen));
 
+    /* Set the peer's address for the caller */
     err = lwip_S_socket_create_address (0, addr.sa.sa_family, (void *)&addr.sa,
             addr.sa.sa_len, addrport, addrporttype);
 
     if (err && alloced)
       munmap (*data, *datalen);
 
-    *outflags = 0; /*FIXME*/
+    *outflags = 0; /* FIXME */
     *nports = 0;
     *portstype = MACH_MSG_TYPE_COPY_SEND;
     *controllen = 0;

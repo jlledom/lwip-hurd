@@ -20,7 +20,7 @@
 #ifndef HURD_LWIP_LWIPOPTS_H
 #define HURD_LWIP_LWIPOPTS_H
 
-//An OS is present
+/* An OS is present */
 #define NO_SYS    0
 
 /* Don't rename Sockets API functions */
@@ -29,19 +29,19 @@
 /* Don't limit the number of sockets */
 #define LWIP_SOCKET_OPEN_COUNT  1
 
-//Use Glibc malloc()/free()
+/* Use Glibc malloc()/free() */
 #define MEM_LIBC_MALLOC   1
 #define MEMP_MEM_MALLOC   1
 #define MEM_USE_POOLS     0
 #define MEM_ALIGNMENT     4
 
-//Only send complete packets to the device
+/* Only send complete packets to the device */
 #define LWIP_NETIF_TX_SINGLE_PBUF 1
 
 /* Randomize local ports */
 #define LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS  1
 
-// Glibc sends more than one packet in a row during an ARP resolution
+/* Glibc sends more than one packet in a row during an ARP resolution */
 #define ARP_QUEUEING    1
 #define ARP_QUEUE_LEN   10
 
@@ -67,7 +67,7 @@
 /* Throughput settings */
 #define LWIP_CHECKSUM_ON_COPY   1
 
-//Disable stats
+/* Disable stats */
 #define LWIP_STATS          0
 #define LWIP_STATS_DISPLAY  0
 

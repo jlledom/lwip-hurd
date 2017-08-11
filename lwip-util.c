@@ -33,6 +33,10 @@
 #include <netif/hurdtunif.h>
 #include <netif/hurdloopif.h>
 
+/*
+ * Detect the proper module for the given device name
+ * and returns its init callback
+ */
 static module_init_t
 get_module_init(char *name)
 {
@@ -53,6 +57,7 @@ get_module_init(char *name)
   return ret;
 }
 
+/* Some checks for IPv4 configurations */
 static int
 ipv4config_is_valid(uint32_t addr, uint32_t netmask,
                         uint32_t gateway, uint32_t broadcast)
@@ -107,6 +112,7 @@ void init_loopback()
   hurdloopif_init(netif_list);
 }
 
+/* Remove the existing interfaces, but the loopback one */
 void
 remove_ifs()
 {
@@ -133,6 +139,7 @@ remove_ifs()
   return;
 }
 
+/* Initialize the interfaces given by the user through command line */
 void
 init_ifs(void *arg)
 {
@@ -199,7 +206,7 @@ init_ifs(void *arg)
       }
     }
 
-    //Up the inerface
+    /* Up the inerface */
     netifapi_netif_set_up(netif);
 
     /* Set the first interface with valid gateway as default */
@@ -216,6 +223,9 @@ init_ifs(void *arg)
   return;
 }
 
+/*
+ * Change the IP configuration of an interface
+ */
 static error_t
 update_if(struct netif *netif, uint32_t addr, uint32_t netmask, uint32_t peer,
             uint32_t broadcast, uint32_t gateway, uint32_t *addr6,
@@ -249,6 +259,7 @@ update_if(struct netif *netif, uint32_t addr, uint32_t netmask, uint32_t peer,
   return err;
 }
 
+/* Get the IP configuration of an interface */
 void
 inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,
                 uint32_t *peer, uint32_t *broadcast, uint32_t *gateway,
@@ -289,6 +300,10 @@ inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,
   }
 }
 
+/*
+ * Check and change the IP configuration of an interface.
+ * Called from ioctls.
+ */
 error_t
 configure_device (struct netif *netif, uint32_t addr, uint32_t netmask,
                   uint32_t peer, uint32_t broadcast, uint32_t gateway,

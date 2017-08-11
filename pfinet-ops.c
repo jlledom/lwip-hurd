@@ -29,6 +29,12 @@
 #include <lwip-util.h>
 #include <netif/hurdethif.h>
 
+/*
+ * Get all the data requested by SIOCGIFCONF for a particular interface.
+ *
+ * When ifc->ifc_ifreq == NULL, this function is being called for getting
+ * the needed buffer length and not the actual data.
+ */
 static void
 dev_ifconf(struct ifconf *ifc)
 {
@@ -44,12 +50,9 @@ dev_ifconf(struct ifconf *ifc)
   netif = netif_list;
   while(netif != 0)
   {
-    /*
-     * When ifc->ifc_ifreq == NULL, this function is being called for getting
-     * the needed buffer length and not the actual data.
-     */
     if(ifc->ifc_req != 0)
     {
+      /* Get the data */
       if (len < (int) sizeof(struct ifreq))
         break;
 
@@ -65,6 +68,7 @@ dev_ifconf(struct ifconf *ifc)
 
       len -= sizeof(struct ifreq);
     }
+    /* Update the needed buffer length */
     buf += sizeof(struct ifreq);
 
     netif = netif->next;
@@ -86,7 +90,7 @@ lwip_S_pfinet_siocgifconf (io_t port,
 
   if (amount == (vm_size_t) -1)
   {
-    /* Get the needed buffer length.  */
+    /* Get the needed buffer length */
     ifc.ifc_buf = 0;
     ifc.ifc_len = 0;
     dev_ifconf (&ifc);
@@ -97,7 +101,7 @@ lwip_S_pfinet_siocgifconf (io_t port,
 
   if (amount > 0)
   {
-    /* Possibly allocate a new buffer. */
+    /* Possibly allocate a new buffer */
     if (*len < amount)
       ifc.ifc_buf = (char *) mmap (0, amount, PROT_READ|PROT_WRITE,
                                     MAP_ANON, 0, 0);

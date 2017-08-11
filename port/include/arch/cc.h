@@ -20,27 +20,28 @@
 #ifndef LWIP_ARCH_CC_H
 #define LWIP_ARCH_CC_H
 
-#include <stdlib.h> //rand()
+#include <stdlib.h> /* rand() */
 #include <stdio.h> /* printf() */
 
-//Use Glibc's fcntl() macros
+/* Use Glibc's fcntl() macros */
 #include <fcntl.h>
 
-//Use Glibc's <errno.h>
+/* Use Glibc's <errno.h> */
 #include <errno.h>
 #define LWIP_ERR_T  int
 
-//System provides its own struct timeval
+/* System provides its own struct timeval */
 #define LWIP_TIMEVAL_PRIVATE  0
 #include <sys/time.h>
 
-//Use our own <sys/socket.h>
+/* Use our own <sys/socket.h> */
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-//We need INT_MAX
+/* We need INT_MAX */
 #include <limits.h>
 
+/* printf() codes */
 #define S16_F "d"
 #define U16_F "u"
 #define X16_F "x"
@@ -53,6 +54,7 @@
 #define LWIP_PLATFORM_DIAG(x) do { printf x; fflush(NULL);} while(0)
 #endif
 
+/* Redefine LWIP_ERROR to not abort the process if the assertion failed */
 #define LWIP_ERROR(message, expression, handler) \
   do { \
     if (!(expression)) { \

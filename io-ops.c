@@ -83,7 +83,7 @@ lwip_S_io_read (struct sock_user *user,
       alloced = 1;
     }
   
-  //Get flags
+  /* Get flags */
   flags = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
 
   err = lwip_recv(user->sock->sockno, *data, amount,
@@ -195,7 +195,9 @@ lwip_S_io_clear_some_openmodes (struct sock_user *user,
   return errno;
 }
 
-
+/*
+ * Arrange things to call lwip_select()
+ */
 static error_t
 lwip_io_select_common (struct sock_user *user,
 		  mach_port_t reply,
@@ -210,18 +212,27 @@ lwip_io_select_common (struct sock_user *user,
   if (!user)
     return EOPNOTSUPP;
 
+  /* Make this thread cancellable */
   ports_interrupt_self_on_notification (user, reply, MACH_NOTIFY_DEAD_NAME);
 
+  /*
+   * Glibc maintains different socket counters for different processes, but
+   * here in LwIP there's only one socket counter. Since there's no limit of
+   * sockets, it's possible for the counter to be greater than FD_SETSIZE,
+   * That's why we may need to increase the size of fd_set.
+   */
   sock = user->sock->sockno;
   setsize = ((sock / (8*(int)sizeof(fd_mask))) + 1) > FD_SETSIZE ?
               ((sock / (8*(int)sizeof(fd_mask))) + 1) : FD_SETSIZE;
   lreadset = lwriteset = lexceptset = 0;
 
+  /* Allocate fd_sets with the proper size */
   if(*select_type & SELECT_READ)
   {
     lreadset = (fd_set*)malloc(setsize);
     if(lreadset)
     {
+      /* We cannot use FD_ZERO as it only works for the default FD_SETSIZE */
       memset(lreadset, 0, setsize);
       FD_SET(sock, lreadset);
     }

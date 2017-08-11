@@ -28,6 +28,7 @@
 
 #include <lwip-hurd.h>
 
+/* Add to the end of the queue */
 static void
 enqueue(struct pbufqueue *q, struct pbuf *p)
 {
@@ -43,6 +44,7 @@ enqueue(struct pbufqueue *q, struct pbuf *p)
   q->len++;
 }
 
+/* Get from the head of the queue */
 static struct pbuf*
 dequeue(struct pbufqueue *q)
 {
@@ -75,6 +77,7 @@ error_t hurdtunif_update_mtu(struct netif *netif, uint32_t mtu)
   return err;
 }
 
+/* Set the device flags */
 static error_t
 hurdtunif_device_set_flags(struct netif *netif, uint16_t flags)
 {
@@ -137,7 +140,7 @@ hurdtunif_output(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
 
   pthread_mutex_lock (&tunif->lock);
 
-  /* Avoid unlimited growth.  */
+  /* Avoid unlimited growth. */
   if(tunif->queue.len > 128)
   {
     oldest = dequeue(&tunif->queue);
@@ -158,6 +161,11 @@ hurdtunif_output(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
   return err;
 }
 
+/*
+ * Set up the tunnel.
+ *
+ * This function should be passed as a parameter to netif_add().
+ */
 err_t
 hurdtunif_init(struct netif *netif)
 {
@@ -238,6 +246,11 @@ hurdtunif_init(struct netif *netif)
   return err;
 }
 
+/*
+ * Set libports classes
+ *
+ * This function should be called once.
+ */
 error_t
 hurdtunif_module_init()
 {
@@ -374,10 +387,6 @@ trivfs_S_io_read (struct trivfs_protid *cred,
 /*
  * Should allocate a pbuf and transfer the bytes of the incoming
  * packet from the interface into the pbuf.
- *
- * @param netif the lwip network interface structure for this hurdethif
- * @return a pbuf filled with the received packet (including MAC header)
- *         NULL on memory error
  */
 static struct pbuf *
 hurdtunif_low_level_input(char *data, mach_msg_type_number_t datalen)
@@ -508,6 +517,7 @@ io_select_common (struct trivfs_protid *cred,
   if (cred->pi.class != tunnel_class)
     return EOPNOTSUPP;
 
+  /* Make this thread cancellable */
   ports_interrupt_self_on_port_death (cred, reply);
 
   /* We only deal with SELECT_READ and SELECT_WRITE here.  */
@@ -532,6 +542,7 @@ io_select_common (struct trivfs_protid *cred,
 
   while (1)
   {
+    /* There's data on the queue */
     if (tunif->queue.len != 0)
     {
       *type = SELECT_READ;
@@ -539,6 +550,7 @@ io_select_common (struct trivfs_protid *cred,
       return 0;
     }
 
+    /* The queue is empty, we must wait */
     tunif->read_blocked = 1;
     err = pthread_hurd_cond_timedwait_np(&tunif->select, &tunif->lock, tsp);
     if (err)

@@ -26,6 +26,7 @@
 #include <lwip/netif.h>
 #include <netif/ifcommon.h>
 
+/* Queue of data in the tunnel */
 struct pbufqueue
 {
   struct pbuf *head;
@@ -33,6 +34,7 @@ struct pbufqueue
   uint8_t len;
 };
 
+/* Extension of the common device interface to store tunnel metadata */
 struct hurdtunif
 {
   struct ifcommon comm;

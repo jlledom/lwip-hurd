@@ -62,7 +62,7 @@ parse_hook_add_interface (struct parse_hook *h)
   return 0;
 }
 
-//Option parser
+/* Option parser */
 static error_t
 parse_opt (int opt, char *arg, struct argp_state *state)
 {
@@ -130,8 +130,10 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       break;
 
     case 'a':
+      /* An address */
       if (arg)
       {
+        /* Check if it's legal */
         h->curint->address.addr = ADDR (arg, "address");
         if (!IN_CLASSA (ntohl (h->curint->address.addr))
             && !IN_CLASSB (ntohl (h->curint->address.addr))
@@ -148,6 +150,7 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       }
       else
       {
+        /* No address given, set default values */
         h->curint->address.addr = ADDR ("0.0.0.0", "address");
         h->curint->netmask.addr = ADDR ("255.0.0.0", "netmask");
         h->curint->gateway.addr = INADDR_NONE;
@@ -155,6 +158,7 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       break;
 
     case 'm':
+      /* Netmask */
       if (arg)
         h->curint->netmask.addr = ADDR (arg, "netmask");
       else
@@ -162,6 +166,7 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       break;
 
     case 'p':
+      /* Peer address */
       if (arg)
         h->curint->peer.addr = ADDR (arg, "peer");
       else
@@ -169,6 +174,7 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       break;
 
     case 'g':
+      /* Gateway for the current interface */
       if (arg)
       {
         h->curint->gateway.addr = ADDR (arg, "gateway");
@@ -189,8 +195,10 @@ parse_opt (int opt, char *arg, struct argp_state *state)
       break;
 
     case 'A':
+      /* IPv6 address */
       if (arg)
       {
+        /* Check prefix */
         if ((ptr = strchr (arg, '/')))
         {
           addr6_prefix_len = atoi (ptr + 1);
@@ -216,9 +224,11 @@ parse_opt (int opt, char *arg, struct argp_state *state)
         {
           address6 = (ip6_addr_t*)&h->curint->addr6[i];
 
+          /* Is the slot free? */
           if(!ip6_addr_isany(address6))
             continue;
 
+          /* Use the slot */
           if (ip6addr_aton(arg, address6) <= 0)
             PERR (EINVAL, "Malformed address");
 
@@ -266,6 +276,7 @@ parse_opt (int opt, char *arg, struct argp_state *state)
   return err;
 }
 
+/* Create the output for fsysopts */
 error_t
 trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
 {

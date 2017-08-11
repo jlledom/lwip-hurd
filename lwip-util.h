@@ -25,6 +25,7 @@
 
 #include <lwip/netif.h>
 
+/* Prototype for module initialization callbacks */
 typedef err_t (*module_init_t)(struct netif *netif);
 
 void init_ifs(void *arg);

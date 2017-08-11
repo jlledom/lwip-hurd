@@ -479,6 +479,10 @@ sys_arch_sem_wait(struct sys_sem **s, u32_t timeout)
   return (u32_t)time_needed;
 }
 
+/*
+ * Like cond_wait(), but it calls Hurd's non portable
+ * functions to receive cancellation requests
+ */
 static u32_t
 cond_wait_intr(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
 {
@@ -521,6 +525,9 @@ cond_wait_intr(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
   return (u32_t)(ts.tv_sec * 1000L + ts.tv_nsec / 1000000L);
 }
 
+/*
+ * Like sys_arch_sem_wait(), but it handles thread cancellations.
+ */
 u32_t
 sys_arch_sem_wait_intr(struct sys_sem **s, u32_t timeout)
 {

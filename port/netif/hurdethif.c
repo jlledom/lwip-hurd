@@ -82,6 +82,7 @@ struct port_class *etherread_class;
 /* Thread for the incoming data */
 static pthread_t input_thread;
 
+/* Get the device flags */
 static error_t
 hurdethif_device_get_flags(struct netif *netif, uint16_t *flags)
 {
@@ -114,6 +115,7 @@ hurdethif_device_get_flags(struct netif *netif, uint16_t *flags)
   return err;
 }
 
+/* Set the device flags */
 static error_t
 hurdethif_device_set_flags(struct netif *netif, uint16_t flags)
 {
@@ -142,6 +144,7 @@ hurdethif_device_set_flags(struct netif *netif, uint16_t flags)
   return err;
 }
 
+/* Use the device interface to access the device */
 static err_t
 hurdethif_device_open (struct netif *netif)
 {
@@ -207,6 +210,7 @@ hurdethif_device_open (struct netif *netif)
   return ERR_OK;
 }
 
+/* Destroy our link to the device */
 static err_t
 hurdethif_device_close (struct netif *netif)
 {
@@ -226,9 +230,6 @@ hurdethif_device_close (struct netif *netif)
 /*
  * In this function, the hardware should be initialized.
  * Called from hurdethif_init().
- *
- * @param netif the already initialized lwip network interface structure
- *        for this hurdethif
  */
 static err_t
 hurdethif_low_level_init(struct netif *netif)
@@ -241,7 +242,7 @@ hurdethif_low_level_init(struct netif *netif)
   err = hurdethif_device_open(netif);
   LWIP_ASSERT ("err==0", err==0);
 
-  //Get the MAC address
+  /* et the MAC address */
   ether_port = netif_get_state(netif)->ether_port;
   err = device_get_status (ether_port, NET_ADDRESS, net_address, &count);
   LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
@@ -296,16 +297,6 @@ hurdethif_low_level_init(struct netif *netif)
  * This function should do the actual transmission of the packet. The packet is
  * contained in the pbuf that is passed to the function. This pbuf
  * might be chained.
- *
- * @param netif the lwip network interface structure for this hurdethif
- * @param p the MAC packet to send (e.g. IP packet + MAC addresses and type)
- * @return ERR_OK if the packet could be sent
- *         an err_t value if the packet couldn't be sent
- *
- * @note Returning ERR_MEM here if a DMA queue of your MAC is full can lead to
- *       strange results. You might consider waiting for space in the DMA queue
- *       to become available since the stack doesn't retry to send a packet
- *       dropped because of memory failure (except for the TCP timers).
  */
 static err_t
 hurdethif_low_level_output(struct netif *netif, struct pbuf *p)
@@ -370,10 +361,6 @@ hurdethif_low_level_output(struct netif *netif, struct pbuf *p)
 /*
  * Should allocate a pbuf and transfer the bytes of the incoming
  * packet from the interface into the pbuf.
- *
- * @param netif the lwip network interface structure for this hurdethif
- * @return a pbuf filled with the received packet (including MAC header)
- *         NULL on memory error
  */
 static struct pbuf *
 hurdethif_low_level_input(struct netif *netif, struct net_rcv_msg *msg)
@@ -455,7 +442,6 @@ hurdethif_low_level_input(struct netif *netif, struct net_rcv_msg *msg)
 
     LINK_STATS_INC(link.recv);
   } else {
-    //TODO: drop packet();
     LINK_STATS_INC(link.memerr);
     LINK_STATS_INC(link.drop);
     MIB2_STATS_NETIF_INC(netif, ifindiscards);
@@ -470,8 +456,6 @@ hurdethif_low_level_input(struct netif *netif, struct net_rcv_msg *msg)
  * should handle the actual reception of bytes from the network
  * interface. Then the type of the received packet is determined and
  * the appropriate input function is called.
- *
- * @param netif the lwip network interface structure for this hurdethif
  */
 void
 hurdethif_input(struct netif *netif, struct net_rcv_msg *msg)
@@ -494,6 +478,7 @@ hurdethif_input(struct netif *netif, struct net_rcv_msg *msg)
   }
 }
 
+/* Demux incoming RPCs from the device */
 int
 hurdethif_demuxer (mach_msg_header_t *inp,
 		  mach_msg_header_t *outp)
@@ -572,12 +557,8 @@ hurdethif_terminate(struct netif *netif)
  * network interface. It calls the function low_level_init() to do the
  * actual setup of the hardware.
  *
- * This function should be passed as a parameter to netif_add().
- *
- * @param netif the lwip network interface structure for this hurdethif
- * @return ERR_OK if the loopif is initialized
- *         ERR_MEM if private data couldn't be allocated
- *         any other err_t on error
+ * This function should be passed as a parameter to netif_add() so it may be
+ * called many times.
  */
 err_t
 hurdethif_init(struct netif *netif)
@@ -647,7 +628,9 @@ hurdethif_input_thread (void *arg)
 }
 
 /*
- * Init the thread for the incoming data
+ * Init the thread for the incoming data.
+ *
+ * This function should be called once.
  */
 error_t
 hurdethif_module_init()

@@ -69,7 +69,7 @@ lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
 {
   struct port_info *pi;
   
-  //Clear errno to prevent raising previous errors again
+  /* Clear errno to prevent raising previous errors again */
   errno = 0;
 
   /* We have several classes in one bucket, which need to be demuxed
