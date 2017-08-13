@@ -1387,7 +1387,7 @@ lwip_link_select_cb(struct lwip_select_cb *select_cb)
   if (select_cb_list != NULL) {
     select_cb_list->prev = select_cb;
   }
-  select_cb_list = &select_cb;
+  select_cb_list = select_cb;
   /* Increasing this counter tells event_callback that the list has changed. */
   select_cb_ctr++;
 
@@ -1396,7 +1396,7 @@ lwip_link_select_cb(struct lwip_select_cb *select_cb)
 }
 
 /* Remove select_cb from select_cb_list. */
-void
+static void
 lwip_unlink_select_cb(struct lwip_select_cb *select_cb)
 {
   SYS_ARCH_DECL_PROTECT(lev);
@@ -1406,7 +1406,7 @@ lwip_unlink_select_cb(struct lwip_select_cb *select_cb)
   if (select_cb->next != NULL) {
     select_cb->next->prev = select_cb->prev;
   }
-  if (select_cb_list == &select_cb) {
+  if (select_cb_list == select_cb) {
     LWIP_ASSERT("select_cb->prev == NULL", select_cb->prev == NULL);
     select_cb_list = select_cb->next;
   } else {
@@ -1805,12 +1805,11 @@ lwip_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
   u32_t waitres = 0;
   int nready;
+  u32_t msectimeout;
   struct lwip_select_cb select_cb;
-  nfds_t fdi;
 #if LWIP_NETCONN_SEM_PER_THREAD
   int waited = 0;
 #endif
-  SYS_ARCH_DECL_PROTECT(lev);
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_poll(%p, %d, %d)\n",
                   (void*)fds, (int)nfds, timeout));
@@ -1858,16 +1857,22 @@ lwip_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 
     if (!nready) {
       /* Still none ready, just wait to be woken */
-      waitres = sys_arch_sem_wait_intr(SELECT_SEM_PTR(select_cb.sem), timeout);
+      if (timeout < 0) {
+        /* Wait forever */
+        msectimeout = 0;
+      } else {
+        /* timeout == 0 would have been handled earlier. */
+        LWIP_ASSERT("timeout > 0", timeout > 0);
+        msectimeout = timeout;
+      }
+      waitres = sys_arch_sem_wait_intr(SELECT_SEM_PTR(select_cb.sem), msectimeout);
 #if LWIP_NETCONN_SEM_PER_THREAD
       waited = 1;
 #endif
     }
 
     /* Decrease select_waiting for each socket we are interested in,
-       and check which events occurred while we waited.
-       It is OK to discard the previous value of nready because
-       we don't set LWIP_POLLSCAN_CLEAR. */
+       and check which events occurred while we waited. */
     nready = lwip_pollscan(fds, nfds, LWIP_POLLSCAN_DEC_WAIT);
 
     lwip_unlink_select_cb(&select_cb);
