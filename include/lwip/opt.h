@@ -1753,6 +1753,17 @@
 #endif
 
 /**
+ * LWIP_POLL==0: Do not define lwip_poll.
+ * LWIP_POLL==1: Define lwip_poll, using someone else's data types.
+ * LWIP_POLL==2: Define lwip_poll, struct pollfd, nfds_t, and constants.
+ */
+#if defined __DOXYGEN__
+#define LWIP_POLL                       1
+#elif !defined LWIP_POLL
+#define LWIP_POLL                       0
+#endif
+
+/**
  * LWIP_POSIX_SOCKETS_IO_NAMES==1: Enable POSIX-style sockets functions names.
  * Disable this option if you use a POSIX operating system that uses the same
  * names (read, write & close). (only used if you use sockets.c)
