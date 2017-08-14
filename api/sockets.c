@@ -451,7 +451,7 @@ alloc_socket(struct netconn *newconn, int accepted)
   /* Protect socket list */
   SYS_ARCH_PROTECT(lev);
   it = &sockets;
-  i = LWIP_SOCKET_OFFSET;
+  i = 0;
   while(*it) {
     if((*it)->count != i) {
       /* There's a gap in the list, fill it */
@@ -461,7 +461,7 @@ alloc_socket(struct netconn *newconn, int accepted)
     it = &(*it)->next;
   }
   /* Add the new socket in the first gap found or in the end */
-  newsock->count = i;
+  newsock->count = i + LWIP_SOCKET_OFFSET;
   newsock->next = (*it);
   (*it) = newsock;
   newsock->conn = newconn;
