@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include <lwip/sockets.h>
 
@@ -228,7 +229,7 @@ lwip_io_select_common (struct sock_user *user,
   /* Allocate fd_sets with the proper size */
   if(*select_type & SELECT_READ)
   {
-    lreadset = (fd_set*)malloc(setsize);
+    lreadset = malloc(setsize);
     if(lreadset)
     {
       /* We cannot use FD_ZERO as it only works for the default FD_SETSIZE */
@@ -238,7 +239,7 @@ lwip_io_select_common (struct sock_user *user,
   }
   if(*select_type & SELECT_WRITE)
   {
-    lwriteset = (fd_set*)malloc(setsize);
+    lwriteset = malloc(setsize);
     if(lwriteset)
     {
       memset(lwriteset, 0, setsize);
@@ -247,7 +248,7 @@ lwip_io_select_common (struct sock_user *user,
   }
   if(*select_type & SELECT_URG)
   {
-    lexceptset = (fd_set*)malloc(setsize);
+    lexceptset = malloc(setsize);
     if(lexceptset)
     {
       memset(lexceptset, 0, setsize);
@@ -261,23 +262,23 @@ lwip_io_select_common (struct sock_user *user,
   if(ret > 0)
   {
     if(lreadset && FD_ISSET(sock, lreadset))
-    {
       *select_type |= SELECT_READ;
-      free(lreadset);
-    }
 
     if(lwriteset && FD_ISSET(sock, lwriteset))
-    {
       *select_type |= SELECT_WRITE;
-      free(lwriteset);
-    }
 
     if(lexceptset && FD_ISSET(sock, lexceptset))
-    {
       *select_type |= SELECT_URG;
-      free(lexceptset);
-    }
   }
+
+  if(lreadset)
+    free(lreadset);
+
+  if(lwriteset)
+    free(lwriteset);
+
+  if(lexceptset)
+    free(lexceptset);
 
   return errno;
 }
