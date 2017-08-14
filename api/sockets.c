@@ -1386,9 +1386,8 @@ lwip_selscan(int maxfdp1, fd_set *readset_in, fd_set *writeset_in, fd_set *excep
              fd_set *readset_out, fd_set *writeset_out, fd_set *exceptset_out)
 {
   int i, nready = 0;
-  size_t setsize = ((maxfdp1 / (8*(int)sizeof(fd_mask))) + 1) > FD_SETSIZE ?
-                    ((maxfdp1 / (8*(int)sizeof(fd_mask))) + 1) : FD_SETSIZE;
-  fd_mask lreadset[setsize], lwriteset[setsize], lexceptset[setsize];
+  size_t setsize = (maxfdp1 > FD_SETSIZE ? maxfdp1 : FD_SETSIZE) / 8;
+  char lreadset[setsize], lwriteset[setsize], lexceptset[setsize];
   struct lwip_sock *sock;
   SYS_ARCH_DECL_PROTECT(lev);
 
@@ -1464,9 +1463,8 @@ lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 {
   u32_t waitres = 0;
   int nready;
-  size_t setsize = ((maxfdp1 / (8*(int)sizeof(fd_mask))) + 1) > FD_SETSIZE ?
-                    ((maxfdp1 / (8*(int)sizeof(fd_mask))) + 1) : FD_SETSIZE;
-  fd_mask lreadset[setsize], lwriteset[setsize], lexceptset[setsize];
+  size_t setsize = (maxfdp1 > FD_SETSIZE ? maxfdp1 : FD_SETSIZE) / 8;
+  char lreadset[setsize], lwriteset[setsize], lexceptset[setsize];
   u32_t msectimeout;
   struct lwip_select_cb select_cb;
   int i;

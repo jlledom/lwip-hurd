@@ -222,8 +222,7 @@ lwip_io_select_common (struct sock_user *user,
    * That's why we may need to increase the size of fd_set.
    */
   sock = user->sock->sockno;
-  setsize = ((sock / (8*(int)sizeof(fd_mask))) + 1) > FD_SETSIZE ?
-              ((sock / (8*(int)sizeof(fd_mask))) + 1) : FD_SETSIZE;
+  setsize = ((sock > FD_SETSIZE ? sock : FD_SETSIZE) / 8) + 1;
   lreadset = lwriteset = lexceptset = 0;
 
   /* Allocate fd_sets with the proper size */
