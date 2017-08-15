@@ -29,6 +29,9 @@
 /* Don't limit the number of sockets */
 #define LWIP_SOCKET_OPEN_COUNT  1
 
+/* We're using lwip_poll() */
+#define LWIP_SOCKET_POLL               1
+
 /* Use Glibc malloc()/free() */
 #define MEM_LIBC_MALLOC   1
 #define MEMP_MEM_MALLOC   1

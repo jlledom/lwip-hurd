@@ -205,10 +205,10 @@ lwip_io_select_common (struct sock_user *user,
 		  mach_msg_type_name_t reply_type,
 		  struct timeval *tv, int *select_type)
 {
-  size_t setsize;
-  fd_set *lreadset, *lwriteset, *lexceptset;
   int ret;
-  int sock;
+  int timeout;
+  struct pollfd fdp;
+  nfds_t nfds;
 
   if (!user)
     return EOPNOTSUPP;
@@ -216,69 +216,39 @@ lwip_io_select_common (struct sock_user *user,
   /* Make this thread cancellable */
   ports_interrupt_self_on_notification (user, reply, MACH_NOTIFY_DEAD_NAME);
 
-  /*
-   * Glibc maintains different socket counters for different processes, but
-   * here in LwIP there's only one socket counter. Since there's no limit of
-   * sockets, it's possible for the counter to be greater than FD_SETSIZE,
-   * That's why we may need to increase the size of fd_set.
-   */
-  sock = user->sock->sockno;
-  setsize = ((sock > FD_SETSIZE ? sock : FD_SETSIZE) / 8) + 1;
-  lreadset = lwriteset = lexceptset = 0;
-
-  /* Allocate fd_sets with the proper size */
+  memset(&fdp, 0, sizeof(struct pollfd));
+  fdp.fd = user->sock->sockno;
+  
   if(*select_type & SELECT_READ)
   {
-    lreadset = malloc(setsize);
-    if(lreadset)
-    {
-      /* We cannot use FD_ZERO as it only works for the default FD_SETSIZE */
-      memset(lreadset, 0, setsize);
-      FD_SET(sock, lreadset);
-    }
+    fdp.events |= POLLIN;
   }
   if(*select_type & SELECT_WRITE)
   {
-    lwriteset = malloc(setsize);
-    if(lwriteset)
-    {
-      memset(lwriteset, 0, setsize);
-      FD_SET(sock, lwriteset);
-    }
+    fdp.events |= POLLOUT;
   }
   if(*select_type & SELECT_URG)
   {
-    lexceptset = malloc(setsize);
-    if(lexceptset)
-    {
-      memset(lexceptset, 0, setsize);
-      FD_SET(sock, lexceptset);
-    }
+    fdp.events |= POLLPRI;
   }
 
   *select_type = 0;
 
-  ret = lwip_select(sock+1, lreadset, lwriteset, lexceptset, tv);
+  nfds = 1;
+  timeout = tv? tv->tv_sec * 1000 + tv->tv_usec / 1000 : -1;
+  ret = lwip_poll(&fdp, nfds, timeout);
+
   if(ret > 0)
   {
-    if(lreadset && FD_ISSET(sock, lreadset))
+    if(fdp.revents & POLLIN)
       *select_type |= SELECT_READ;
 
-    if(lwriteset && FD_ISSET(sock, lwriteset))
+    if(fdp.revents & POLLOUT)
       *select_type |= SELECT_WRITE;
 
-    if(lexceptset && FD_ISSET(sock, lexceptset))
+    if(fdp.revents & POLLPRI)
       *select_type |= SELECT_URG;
-  }
-
-  if(lreadset)
-    free(lreadset);
-
-  if(lwriteset)
-    free(lwriteset);
-
-  if(lexceptset)
-    free(lexceptset);
+}
 
   return errno;
 }
@@ -289,7 +259,7 @@ lwip_S_io_select (struct sock_user *user,
 	     mach_msg_type_name_t reply_type,
 	     int *select_type)
 {
-  return lwip_io_select_common (user, reply, reply_type, NULL, select_type);
+  return lwip_io_select_common (user, reply, reply_type, 0, select_type);
 }
 
 error_t

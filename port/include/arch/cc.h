@@ -41,6 +41,9 @@
 /* We need INT_MAX */
 #include <limits.h>
 
+/* We use poll instead() of select()*/
+#include <poll.h>
+
 /* printf() codes */
 #define S16_F "d"
 #define U16_F "u"
