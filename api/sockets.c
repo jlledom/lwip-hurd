@@ -1891,12 +1891,12 @@ lwip_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 
     if (waitres == SYS_ARCH_TIMEOUT) {
       /* Timeout */
-      LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_select: timeout expired\n"));
+      LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_poll: timeout expired\n"));
       goto return_success;
     }
   }
 
-  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_select: nready=%d\n", nready));
+  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_poll: nready=%d\n", nready));
 return_success:
   set_errno(0);
   return nready;
