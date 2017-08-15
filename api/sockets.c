@@ -244,7 +244,7 @@ struct lwip_select_cb {
   fd_set *writeset;
   /** unimplemented: exceptset passed to select */
   fd_set *exceptset;
-#if LWIP_POLL
+#if LWIP_SOCKET_POLL
   /** fds passed to poll; NULL if select */
   struct pollfd *poll_fds;
   /** nfds passed to poll; 0 if select */
@@ -1554,7 +1554,7 @@ lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     select_cb.readset = readset;
     select_cb.writeset = writeset;
     select_cb.exceptset = exceptset;
-#if LWIP_POLL
+#if LWIP_SOCKET_POLL
     select_cb.poll_fds = NULL;
     select_cb.poll_nfds = 0;
 #endif
@@ -1687,7 +1687,7 @@ return_copy_fdsets:
   return nready;
 }
 
-#if LWIP_POLL
+#if LWIP_SOCKET_POLL
 
 /** Options for the lwip_pollscan function. */
 enum lwip_pollscan_opts
@@ -1931,7 +1931,7 @@ lwip_poll_should_wake(const struct lwip_select_cb *scb, int fd, struct lwip_sock
   return 0;
 }
 
-#endif /* LWIP_POLL */
+#endif /* LWIP_SOCKET_POLL */
 
 /**
  * Callback registered in the netconn layer for each socket-netconn.
@@ -2019,11 +2019,11 @@ again:
     if (scb->sem_signalled == 0) {
       /* semaphore not signalled yet */
       int do_signal = 0;
-#if LWIP_POLL
+#if LWIP_SOCKET_POLL
       if (scb->poll_fds != NULL) {
         do_signal = lwip_poll_should_wake(scb, s, sock);
       } else
-#endif /* LWIP_POLL */
+#endif /* LWIP_SOCKET_POLL */
       {
         /* Test this select call for our socket */
         if (sock->rcvevent > 0) {

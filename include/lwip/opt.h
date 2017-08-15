@@ -1753,14 +1753,14 @@
 #endif
 
 /**
- * LWIP_POLL==0: Do not define lwip_poll.
- * LWIP_POLL==1: Define lwip_poll, using someone else's data types.
- * LWIP_POLL==2: Define lwip_poll, struct pollfd, nfds_t, and constants.
+ * LWIP_SOCKET_POLL==0: Do not define lwip_poll.
+ * LWIP_SOCKET_POLL==1: Define lwip_poll, using someone else's data types.
+ * LWIP_SOCKET_POLL==2: Define lwip_poll, struct pollfd, nfds_t, and constants.
  */
 #if defined __DOXYGEN__
-#define LWIP_POLL                       1
-#elif !defined LWIP_POLL
-#define LWIP_POLL                       0
+#define LWIP_SOCKET_POLL                       1
+#elif !defined LWIP_SOCKET_POLL
+#define LWIP_SOCKET_POLL                       0
 #endif
 
 /**
