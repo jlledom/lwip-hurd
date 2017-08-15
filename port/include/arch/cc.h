@@ -41,7 +41,7 @@
 /* We need INT_MAX */
 #include <limits.h>
 
-/* We use poll instead() of select()*/
+/* We use poll() instead of select()*/
 #include <poll.h>
 
 /* printf() codes */
