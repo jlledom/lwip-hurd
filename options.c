@@ -28,7 +28,6 @@
 #include <arpa/inet.h>
 #include <net/if_arp.h>
 
-#include <lwip/tcpip.h>
 #include <lwip/netif.h>
 
 #include <lwip-hurd.h>

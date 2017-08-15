@@ -20,34 +20,28 @@ dir			= lwip
 makemode	= server
 
 PORTDIR = $(srcdir)/port
-
-include $(srcdir)/Filelists.mk
+LIBLWIPDIR = $(srcdir)/../liblwip
 
 SRCS		= main.c io-ops.c socket-ops.c pfinet-ops.c iioctl-ops.c port-objs.c \
 						options.c lwip-util.c
-ARCHSRCS	= sys_arch.c hurdethif.c hurdloopif.c hurdtunif.c
+IFSRCS	= hurdethif.c hurdloopif.c hurdtunif.c
 MIGSRCS		= ioServer.c socketServer.c pfinetServer.c iioctlServer.c
 OBJS		= $(patsubst %.S,%.o,$(patsubst %.c,%.o,\
-				$(SRCS) $(MIGSRCS) $(LWIPALLFILES) $(ARCHSRCS)))
+				$(SRCS) $(IFSRCS) $(MIGSRCS)))
 
-HURDLIBS= trivfs fshelp ports ihash shouldbeinlibc iohelp
+HURDLIBS= lwip trivfs fshelp ports ihash shouldbeinlibc iohelp
 LDLIBS = -lpthread
 
 target = lwip
 
 include ../Makeconf
 
-vpath %.c $(srcdir)/api \
-		$(srcdir)/core \
-		$(srcdir)/core/ipv4 \
-		$(srcdir)/core/ipv6 \
-		$(srcdir)/netif \
-		$(srcdir)/netif/ppp \
-		$(srcdir)/netif/ppp/polarssl \
-		$(PORTDIR) \
+vpath %.c $(PORTDIR) \
 		$(PORTDIR)/netif
 
-CFLAGS += -I$(srcdir)/include -I$(PORTDIR)/include
+CFLAGS += -I$(PORTDIR)/include \
+		-I$(LIBLWIPDIR)/dist/include \
+		-I$(LIBLWIPDIR)/port/include
 
 CPPFLAGS += -imacros $(srcdir)/config.h
 MIGCOMSFLAGS += -prefix lwip_

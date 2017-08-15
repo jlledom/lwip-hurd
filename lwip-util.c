@@ -24,7 +24,6 @@
 #include <net/if_arp.h>
 
 #include <lwip/sockets.h>
-#include <lwip/tcpip.h>
 #include <lwip/netifapi.h>
 
 #include <lwip-hurd.h>
