@@ -171,7 +171,8 @@ SIOCSIF (dstaddr, DSTADDR);
 /* 16 SIOCSIFFLAGS -- Set flags of a network interface.  */
 kern_return_t
 lwip_S_iioctl_siocsifflags (struct sock_user * user,
-			    ifname_t ifnam, short flags)
+			    ifname_t ifnam,
+			    short flags)
 {
   error_t err = 0;
 
@@ -221,7 +222,8 @@ SIOCSIF (netmask, NETMASK);
 /* 23 SIOCGIFMETRIC -- Get metric of a network interface.  */
 kern_return_t
 lwip_S_iioctl_siocgifmetric (struct sock_user * user,
-			     ifname_t ifnam, int *metric)
+			     ifname_t ifnam,
+			     int *metric)
 {
   error_t err = 0;
   struct netif *netif;
@@ -240,7 +242,8 @@ lwip_S_iioctl_siocgifmetric (struct sock_user * user,
 /* 24 SIOCSIFMETRIC -- Set metric of a network interface.  */
 kern_return_t
 lwip_S_iioctl_siocsifmetric (struct sock_user * user,
-			     ifname_t ifnam, int metric)
+			     ifname_t ifnam,
+			     int metric)
 {
   return EOPNOTSUPP;
 }
@@ -248,7 +251,8 @@ lwip_S_iioctl_siocsifmetric (struct sock_user * user,
 /* 25 SIOCDIFADDR -- Delete interface address.  */
 kern_return_t
 lwip_S_iioctl_siocdifaddr (struct sock_user * user,
-			   ifname_t ifnam, sockaddr_t addr)
+			   ifname_t ifnam,
+			   sockaddr_t addr)
 {
   return EOPNOTSUPP;
 }
@@ -268,7 +272,8 @@ SIOCGIF (netmask, NETMASK);
 /* 39 SIOCGIFHWADDR -- Get the hardware address of a network interface.  */
 error_t
 lwip_S_iioctl_siocgifhwaddr (struct sock_user * user,
-			     ifname_t ifname, sockaddr_t * addr)
+			     ifname_t ifname,
+			     sockaddr_t * addr)
 {
   error_t err = 0;
   struct netif *netif;
@@ -333,7 +338,8 @@ lwip_S_iioctl_siocsifmtu (struct sock_user * user, ifname_t ifnam, int mtu)
 /* 100 SIOCGIFINDEX -- Get index number of a network interface.  */
 error_t
 lwip_S_iioctl_siocgifindex (struct sock_user * user,
-			    ifname_t ifnam, int *index)
+			    ifname_t ifnam,
+			    int *index)
 {
   error_t err = 0;
   struct netif *netif;
@@ -362,7 +368,8 @@ lwip_S_iioctl_siocgifindex (struct sock_user * user,
 /* 101 SIOCGIFNAME -- Get name of a network interface from index number.  */
 error_t
 lwip_S_iioctl_siocgifname (struct sock_user * user,
-			   ifname_t ifnam, int *index)
+			   ifname_t ifnam,
+			   int *index)
 {
   error_t err = 0;
   struct netif *netif;
