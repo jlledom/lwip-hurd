@@ -26,15 +26,17 @@
 #include <lwip/netif.h>
 
 /* Prototype for module initialization callbacks */
-typedef err_t (*module_init_t)(struct netif *netif);
+typedef err_t (*module_init_t) (struct netif * netif);
 
-void init_ifs(void *arg);
+void init_ifs (void *arg);
 
-void inquire_device (struct netif *netif, uint32_t *addr, uint32_t *netmask,
-                uint32_t *peer, uint32_t *broadcast, uint32_t *gateway,
-                uint32_t *addr6, uint8_t *addr6_prefix_len);
-error_t configure_device (struct netif *netif, uint32_t addr, uint32_t netmask,
-                  uint32_t peer, uint32_t broadcast, uint32_t gateway,
-                  uint32_t *addr6, uint8_t *addr6_prefix_len);
+void inquire_device (struct netif *netif, uint32_t * addr, uint32_t * netmask,
+		     uint32_t * peer, uint32_t * broadcast,
+		     uint32_t * gateway, uint32_t * addr6,
+		     uint8_t * addr6_prefix_len);
+error_t configure_device (struct netif *netif, uint32_t addr,
+			  uint32_t netmask, uint32_t peer, uint32_t broadcast,
+			  uint32_t gateway, uint32_t * addr6,
+			  uint8_t * addr6_prefix_len);
 
 #endif /* LWIP_UTIL_H */

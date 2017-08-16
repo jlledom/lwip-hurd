@@ -41,22 +41,23 @@ parse_hook_add_interface (struct parse_hook *h)
 {
   int i;
 
-  struct parse_interface *new =
-    realloc (h->interfaces,
-      (h->num_interfaces + 1) * sizeof (struct parse_interface));
-  if (! new)
+  struct parse_interface *new = realloc (h->interfaces,
+					 (h->num_interfaces +
+					  1) *
+					 sizeof (struct parse_interface));
+  if (!new)
     return ENOMEM;
 
   h->interfaces = new;
   h->num_interfaces++;
   h->curint = new + h->num_interfaces - 1;
-  memset(&h->curint->dev_name, 0, DEV_NAME_LEN);
+  memset (&h->curint->dev_name, 0, DEV_NAME_LEN);
   h->curint->address.addr = INADDR_NONE;
   h->curint->netmask.addr = INADDR_NONE;
   h->curint->peer.addr = INADDR_NONE;
   h->curint->gateway.addr = INADDR_NONE;
-  for(i=0; i<LWIP_IPV6_NUM_ADDRESSES; i++)
-    ip6_addr_set_zero((ip6_addr_t *)&h->curint->addr6[i]);
+  for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++)
+    ip6_addr_set_zero ((ip6_addr_t *) & h->curint->addr6[i]);
 
   return 0;
 }
@@ -90,11 +91,10 @@ parse_opt (int opt, char *arg, struct argp_state *state)
      if (addr == INADDR_NONE) PERR (EINVAL, "Malformed %s", type);  \
      addr; })
 
-  if (!arg && state->next < state->argc
-      && (*state->argv[state->next] != '-'))
+  if (!arg && state->next < state->argc && (*state->argv[state->next] != '-'))
     {
       arg = state->argv[state->next];
-      state->next ++;
+      state->next++;
     }
 
   switch (opt)
@@ -110,76 +110,76 @@ parse_opt (int opt, char *arg, struct argp_state *state)
 
       /* First see if a previously specified one is being re-specified.  */
       for (in = h->interfaces; in < h->interfaces + h->num_interfaces; in++)
-        if (strcmp (in->dev_name, arg) == 0)
-          /* Re-use an old slot.  */
-          {
-            h->curint = in;
-            return 0;
-          }
+	if (strcmp (in->dev_name, arg) == 0)
+	  /* Re-use an old slot.  */
+	  {
+	    h->curint = in;
+	    return 0;
+	  }
 
       if (h->curint->dev_name[0])
-      /* The current interface slot is not available.  */
-      {
-        /* Add a new interface entry.  */
-        err = parse_hook_add_interface (h);
-      }
+	/* The current interface slot is not available.  */
+	{
+	  /* Add a new interface entry.  */
+	  err = parse_hook_add_interface (h);
+	}
       in = h->curint;
 
-      strncpy(in->dev_name, arg, DEV_NAME_LEN);
+      strncpy (in->dev_name, arg, DEV_NAME_LEN);
       break;
 
     case 'a':
       /* An address */
       if (arg)
-      {
-        /* Check if it's legal */
-        h->curint->address.addr = ADDR (arg, "address");
-        if (!IN_CLASSA (ntohl (h->curint->address.addr))
-            && !IN_CLASSB (ntohl (h->curint->address.addr))
-            && !IN_CLASSC (ntohl (h->curint->address.addr)))
-          {
-            if (IN_MULTICAST (ntohl (h->curint->address.addr)))
-              FAIL (EINVAL, 1, 0,
-                    "%s: Cannot set interface address to multicast address",
-                     arg);
-            else
-              FAIL (EINVAL, 1, 0,
-                    "%s: Illegal or undefined network address", arg);
-          }
-      }
+	{
+	  /* Check if it's legal */
+	  h->curint->address.addr = ADDR (arg, "address");
+	  if (!IN_CLASSA (ntohl (h->curint->address.addr))
+	      && !IN_CLASSB (ntohl (h->curint->address.addr))
+	      && !IN_CLASSC (ntohl (h->curint->address.addr)))
+	    {
+	      if (IN_MULTICAST (ntohl (h->curint->address.addr)))
+		FAIL (EINVAL, 1, 0,
+		      "%s: Cannot set interface address to multicast address",
+		      arg);
+	      else
+		FAIL (EINVAL, 1, 0,
+		      "%s: Illegal or undefined network address", arg);
+	    }
+	}
       else
-      {
-        /* No address given, set default values */
-        h->curint->address.addr = ADDR ("0.0.0.0", "address");
-        h->curint->netmask.addr = ADDR ("255.0.0.0", "netmask");
-        h->curint->gateway.addr = INADDR_NONE;
-      }
+	{
+	  /* No address given, set default values */
+	  h->curint->address.addr = ADDR ("0.0.0.0", "address");
+	  h->curint->netmask.addr = ADDR ("255.0.0.0", "netmask");
+	  h->curint->gateway.addr = INADDR_NONE;
+	}
       break;
 
     case 'm':
       /* Netmask */
       if (arg)
-        h->curint->netmask.addr = ADDR (arg, "netmask");
+	h->curint->netmask.addr = ADDR (arg, "netmask");
       else
-        h->curint->netmask.addr = INADDR_NONE;
+	h->curint->netmask.addr = INADDR_NONE;
       break;
 
     case 'p':
       /* Peer address */
       if (arg)
-        h->curint->peer.addr = ADDR (arg, "peer");
+	h->curint->peer.addr = ADDR (arg, "peer");
       else
-        h->curint->peer.addr = INADDR_NONE;
+	h->curint->peer.addr = INADDR_NONE;
       break;
 
     case 'g':
       /* Gateway for the current interface */
       if (arg)
-      {
-        h->curint->gateway.addr = ADDR (arg, "gateway");
-      }
+	{
+	  h->curint->gateway.addr = ADDR (arg, "gateway");
+	}
       else
-        h->curint->gateway.addr = INADDR_NONE;
+	h->curint->gateway.addr = INADDR_NONE;
       break;
 
     case '4':
@@ -196,70 +196,71 @@ parse_opt (int opt, char *arg, struct argp_state *state)
     case 'A':
       /* IPv6 address */
       if (arg)
-      {
-        /* Check prefix */
-        if ((ptr = strchr (arg, '/')))
-        {
-          addr6_prefix_len = atoi (ptr + 1);
-          if (addr6_prefix_len > 128)
-            FAIL (EINVAL, 1, 0, "%s: The prefix-length is invalid", arg);
+	{
+	  /* Check prefix */
+	  if ((ptr = strchr (arg, '/')))
+	    {
+	      addr6_prefix_len = atoi (ptr + 1);
+	      if (addr6_prefix_len > 128)
+		FAIL (EINVAL, 1, 0, "%s: The prefix-length is invalid", arg);
 
-          /* Remove the prefix from the address */
-          *ptr = 0;
+	      /* Remove the prefix from the address */
+	      *ptr = 0;
 
-          if (addr6_prefix_len != 64)
-          {
-            fprintf (stderr, "The only supported value for the prefix-length"
-               " is /64. Defaulting to %s/64.\n", arg);
-          }
-        }
-        else
-        {
-          fprintf (stderr, "No prefix-length given, "
-             "defaulting to %s/64.\n", arg);
-        }
+	      if (addr6_prefix_len != 64)
+		{
+		  fprintf (stderr,
+			   "The only supported value for the prefix-length"
+			   " is /64. Defaulting to %s/64.\n", arg);
+		}
+	    }
+	  else
+	    {
+	      fprintf (stderr, "No prefix-length given, "
+		       "defaulting to %s/64.\n", arg);
+	    }
 
-        for(i=0; i<LWIP_IPV6_NUM_ADDRESSES; i++)
-        {
-          address6 = (ip6_addr_t*)&h->curint->addr6[i];
+	  for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++)
+	    {
+	      address6 = (ip6_addr_t *) & h->curint->addr6[i];
 
-          /* Is the slot free? */
-          if(!ip6_addr_isany(address6))
-            continue;
+	      /* Is the slot free? */
+	      if (!ip6_addr_isany (address6))
+		continue;
 
-          /* Use the slot */
-          if (ip6addr_aton(arg, address6) <= 0)
-            PERR (EINVAL, "Malformed address");
+	      /* Use the slot */
+	      if (ip6addr_aton (arg, address6) <= 0)
+		PERR (EINVAL, "Malformed address");
 
-          break;
-        }
-      }
+	      break;
+	    }
+	}
 
       break;
 
     case ARGP_KEY_INIT:
       /* Initialize our parsing state.  */
       h = malloc (sizeof (struct parse_hook));
-      if (! h)
-        FAIL (ENOMEM, 11, ENOMEM, "option parsing");
+      if (!h)
+	FAIL (ENOMEM, 11, ENOMEM, "option parsing");
 
       h->interfaces = 0;
       h->num_interfaces = 0;
       err = parse_hook_add_interface (h);
       if (err)
-        FAIL (err, 12, err, "option parsing");
+	FAIL (err, 12, err, "option parsing");
 
       state->hook = h;
       break;
 
     case ARGP_KEY_SUCCESS:
       /* If the interface list is not empty, a previous configuration exists */
-      if(netif_list == 0)
-        /* Inititalize LwIP */
-        tcpip_init(init_ifs, h);
+      if (netif_list == 0)
+	/* Inititalize LwIP */
+	tcpip_init (init_ifs, h);
       else
-        /* No need to initialize the stack again */
-        init_ifs(h);
+	/* No need to initialize the stack again */
+	init_ifs (h);
       break;
 
     case ARGP_KEY_ERROR:
@@ -270,14 +271,15 @@ parse_opt (int opt, char *arg, struct argp_state *state)
 
     default:
       return ARGP_ERR_UNKNOWN;
-  }
+    }
 
   return err;
 }
 
 /* Create the output for fsysopts */
 error_t
-trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
+trivfs_append_args (struct trivfs_control * fsys, char **argz,
+		    size_t * argz_len)
 {
   error_t err = 0;
   struct netif *netif;
@@ -297,32 +299,33 @@ trivfs_append_args (struct trivfs_control *fsys, char **argz, size_t *argz_len)
        ADD_OPT ("--%s=%s", name, inet_ntoa (i)); } while (0)
 
   netif = netif_list;
-  while(netif != 0)
-  {
-    /* Skip the loopback interface*/
-    if(netif_get_state(netif)->type == ARPHRD_LOOPBACK)
+  while (netif != 0)
     {
+      /* Skip the loopback interface */
+      if (netif_get_state (netif)->type == ARPHRD_LOOPBACK)
+	{
+	  netif = netif->next;
+	  continue;
+	}
+
+      inquire_device (netif, &addr, &netmask, 0, 0, &gateway,
+		      (uint32_t *) addr6, addr6_prefix_len);
+
+      ADD_OPT ("--interface=%s", netif_get_state (netif)->devname);
+      if (addr != INADDR_NONE)
+	ADD_ADDR_OPT ("address", addr);
+      if (netmask != INADDR_NONE)
+	ADD_ADDR_OPT ("netmask", netmask);
+      if (gateway != INADDR_NONE)
+	ADD_ADDR_OPT ("gateway", gateway);
+      for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++)
+	if (!ip6_addr_isany (((ip6_addr_t *) & addr6[i])))
+	  ADD_OPT ("--address6=%s/%d",
+		   ip6addr_ntoa (((ip6_addr_t *) & addr6[i])),
+		   addr6_prefix_len[i]);
+
       netif = netif->next;
-      continue;
     }
-
-    inquire_device(netif, &addr, &netmask, 0, 0, &gateway,
-                    (uint32_t *)addr6, addr6_prefix_len);
-
-    ADD_OPT ("--interface=%s", netif_get_state(netif)->devname);
-    if (addr != INADDR_NONE)
-      ADD_ADDR_OPT ("address", addr);
-    if (netmask != INADDR_NONE)
-      ADD_ADDR_OPT ("netmask", netmask);
-    if (gateway != INADDR_NONE)
-      ADD_ADDR_OPT ("gateway", gateway);
-    for(i=0; i < LWIP_IPV6_NUM_ADDRESSES; i++)
-      if (!ip6_addr_isany(((ip6_addr_t *)&addr6[i])))
-        ADD_OPT("--address6=%s/%d",
-                ip6addr_ntoa(((ip6_addr_t *)&addr6[i])), addr6_prefix_len[i]);
-
-    netif = netif->next;
-  }
 
 #undef ADD_ADDR_OPT
 

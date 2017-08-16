@@ -27,12 +27,12 @@
 
 /* Set the device flags */
 static error_t
-hurdloopif_device_set_flags(struct netif *netif, uint16_t flags)
+hurdloopif_device_set_flags (struct netif *netif, uint16_t flags)
 {
   error_t err = 0;
   hurdloopif *loopif;
 
-  loopif = netif_get_state(netif);
+  loopif = netif_get_state (netif);
   loopif->flags = flags;
 
   return err;
@@ -41,7 +41,8 @@ hurdloopif_device_set_flags(struct netif *netif, uint16_t flags)
 /*
  * Update the interface's MTU
  */
-error_t hurdloopif_update_mtu(struct netif *netif, uint32_t mtu)
+error_t
+hurdloopif_update_mtu (struct netif * netif, uint32_t mtu)
 {
   error_t err = 0;
 
@@ -56,7 +57,7 @@ error_t hurdloopif_update_mtu(struct netif *netif, uint32_t mtu)
  * Returns 0 on success.
  */
 error_t
-hurdloopif_terminate(struct netif *netif)
+hurdloopif_terminate (struct netif * netif)
 {
   /* Free the hook */
   mem_free (netif->state);
@@ -71,19 +72,19 @@ hurdloopif_terminate(struct netif *netif)
  * called many times.
  */
 err_t
-hurdloopif_init(struct netif *netif)
+hurdloopif_init (struct netif * netif)
 {
   err_t err = 0;
   hurdloopif *loopif;
 
-  loopif = netif_get_state(netif);
+  loopif = netif_get_state (netif);
 
   loopif->devname = LOOP_DEV_NAME;
   loopif->type = ARPHRD_LOOPBACK;
 
   netif->mtu = TCP_MSS + 0x28;
 
-  hurdloopif_device_set_flags(netif, IFF_UP|IFF_RUNNING|IFF_LOOPBACK);
+  hurdloopif_device_set_flags (netif, IFF_UP | IFF_RUNNING | IFF_LOOPBACK);
 
   loopif->terminate = hurdloopif_terminate;
   loopif->update_mtu = hurdloopif_update_mtu;

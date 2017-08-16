@@ -30,22 +30,22 @@
 
 /* Get the interface from its name */
 static struct netif *
-get_if(char *name)
+get_if (char *name)
 {
   char ifname[IFNAMSIZ];
   struct netif *netif;
 
-  memcpy (ifname, name, IFNAMSIZ-1);
-  ifname[IFNAMSIZ-1] = 0;
+  memcpy (ifname, name, IFNAMSIZ - 1);
+  ifname[IFNAMSIZ - 1] = 0;
 
   netif = netif_list;
-  while(netif != 0)
-  {
-    if (strcmp (netif_get_state(netif)->devname, ifname) == 0)
-      break;
+  while (netif != 0)
+    {
+      if (strcmp (netif_get_state (netif)->devname, ifname) == 0)
+	break;
 
-    netif = netif->next;
-  }
+      netif = netif->next;
+    }
 
   return netif;
 }
@@ -70,13 +70,11 @@ enum siocgif_type
 /* Get some sockaddr type of info.  */
 static kern_return_t
 siocgifXaddr (struct sock_user *user,
-        ifname_t ifnam,
-        sockaddr_t *addr,
-        enum siocgif_type type)
+	      ifname_t ifnam, sockaddr_t * addr, enum siocgif_type type)
 {
   error_t err = 0;
   struct sockaddr_in *sin = (struct sockaddr_in *) addr;
-  size_t buflen = sizeof(struct sockaddr);
+  size_t buflen = sizeof (struct sockaddr);
   struct netif *netif;
   uint32_t addrs[4];
 
@@ -87,20 +85,21 @@ siocgifXaddr (struct sock_user *user,
   if (!netif)
     return ENODEV;
 
-  if(type == DSTADDR)
+  if (type == DSTADDR)
     return EOPNOTSUPP;
 
-  err = lwip_getsockname(user->sock->sockno, addr, (socklen_t*)&buflen);
-  if(err)
+  err = lwip_getsockname (user->sock->sockno, addr, (socklen_t *) & buflen);
+  if (err)
     return err;
 
   if (sin->sin_family != AF_INET)
     err = EINVAL;
   else
-  {
-    inquire_device (netif, &addrs[0], &addrs[1], &addrs[2], &addrs[3], 0, 0, 0);
-    sin->sin_addr.s_addr = addrs[type];
-  }
+    {
+      inquire_device (netif, &addrs[0], &addrs[1], &addrs[2], &addrs[3], 0, 0,
+		      0);
+      sin->sin_addr.s_addr = addrs[type];
+    }
 
   return err;
 }
@@ -117,13 +116,11 @@ siocgifXaddr (struct sock_user *user,
 /* Set some sockaddr type of info.  */
 static kern_return_t
 siocsifXaddr (struct sock_user *user,
-        ifname_t ifnam,
-        sockaddr_t *addr,
-        enum siocgif_type type)
+	      ifname_t ifnam, sockaddr_t * addr, enum siocgif_type type)
 {
   error_t err = 0;
   struct sockaddr_in sin;
-  size_t buflen = sizeof(struct sockaddr_in);
+  size_t buflen = sizeof (struct sockaddr_in);
   struct netif *netif;
   uint32_t ipv4_addrs[5];
 
@@ -138,26 +135,27 @@ siocsifXaddr (struct sock_user *user,
   if (!netif)
     return ENODEV;
 
-  if(type == DSTADDR || type == BRDADDR)
+  if (type == DSTADDR || type == BRDADDR)
     return EOPNOTSUPP;
 
-  err = lwip_getsockname(user->sock->sockno,
-                          (sockaddr_t*)&sin, (socklen_t*)&buflen);
-  if(err)
+  err = lwip_getsockname (user->sock->sockno,
+			  (sockaddr_t *) & sin, (socklen_t *) & buflen);
+  if (err)
     return err;
 
   if (sin.sin_family != AF_INET)
     err = EINVAL;
   else
-  {
-    inquire_device (netif, &ipv4_addrs[0], &ipv4_addrs[1],
-                      &ipv4_addrs[2], &ipv4_addrs[3], &ipv4_addrs[4], 0, 0);
+    {
+      inquire_device (netif, &ipv4_addrs[0], &ipv4_addrs[1],
+		      &ipv4_addrs[2], &ipv4_addrs[3], &ipv4_addrs[4], 0, 0);
 
-    ipv4_addrs[type] = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
+      ipv4_addrs[type] = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
 
-    err = configure_device (netif, ipv4_addrs[0], ipv4_addrs[1],
-                      ipv4_addrs[2], ipv4_addrs[3], ipv4_addrs[4], 0, 0);
-  }
+      err = configure_device (netif, ipv4_addrs[0], ipv4_addrs[1],
+			      ipv4_addrs[2], ipv4_addrs[3], ipv4_addrs[4], 0,
+			      0);
+    }
 
   return err;
 }
@@ -170,9 +168,8 @@ SIOCSIF (dstaddr, DSTADDR);
 
 /* 16 SIOCSIFFLAGS -- Set flags of a network interface.  */
 kern_return_t
-lwip_S_iioctl_siocsifflags (struct sock_user *user,
-        ifname_t ifnam,
-        short flags)
+lwip_S_iioctl_siocsifflags (struct sock_user * user,
+			    ifname_t ifnam, short flags)
 {
   error_t err = 0;
 
@@ -188,18 +185,16 @@ lwip_S_iioctl_siocsifflags (struct sock_user *user,
   else if (!netif)
     err = ENODEV;
   else
-  {
-    err = netif_get_state(netif)->change_flags(netif, flags);
-  }
+    {
+      err = netif_get_state (netif)->change_flags (netif, flags);
+    }
 
   return err;
 }
 
 /* 17 SIOCGIFFLAGS -- Get flags of a network interface.  */
 kern_return_t
-lwip_S_iioctl_siocgifflags (struct sock_user *user,
-        char *name,
-        short *flags)
+lwip_S_iioctl_siocgifflags (struct sock_user * user, char *name, short *flags)
 {
   error_t err = 0;
   struct netif *netif;
@@ -208,9 +203,9 @@ lwip_S_iioctl_siocgifflags (struct sock_user *user,
   if (!netif)
     err = ENODEV;
   else
-  {
-    *flags = netif_get_state(netif)->flags;
-  }
+    {
+      *flags = netif_get_state (netif)->flags;
+    }
 
   return err;
 }
@@ -223,9 +218,8 @@ SIOCSIF (netmask, NETMASK);
 
 /* 23 SIOCGIFMETRIC -- Get metric of a network interface.  */
 kern_return_t
-lwip_S_iioctl_siocgifmetric (struct sock_user *user,
-        ifname_t ifnam,
-        int *metric)
+lwip_S_iioctl_siocgifmetric (struct sock_user * user,
+			     ifname_t ifnam, int *metric)
 {
   error_t err = 0;
   struct netif *netif;
@@ -235,7 +229,7 @@ lwip_S_iioctl_siocgifmetric (struct sock_user *user,
     err = ENODEV;
   else
     {
-      *metric = 0; /* Not supported.  */
+      *metric = 0;		/* Not supported.  */
     }
 
   return err;
@@ -243,18 +237,16 @@ lwip_S_iioctl_siocgifmetric (struct sock_user *user,
 
 /* 24 SIOCSIFMETRIC -- Set metric of a network interface.  */
 kern_return_t
-lwip_S_iioctl_siocsifmetric (struct sock_user *user,
-      ifname_t ifnam,
-      int metric)
+lwip_S_iioctl_siocsifmetric (struct sock_user * user,
+			     ifname_t ifnam, int metric)
 {
   return EOPNOTSUPP;
 }
 
 /* 25 SIOCDIFADDR -- Delete interface address.  */
 kern_return_t
-lwip_S_iioctl_siocdifaddr (struct sock_user *user,
-        ifname_t ifnam,
-        sockaddr_t addr)
+lwip_S_iioctl_siocdifaddr (struct sock_user * user,
+			   ifname_t ifnam, sockaddr_t addr)
 {
   return EOPNOTSUPP;
 }
@@ -273,9 +265,8 @@ SIOCGIF (netmask, NETMASK);
 
 /* 39 SIOCGIFHWADDR -- Get the hardware address of a network interface.  */
 error_t
-lwip_S_iioctl_siocgifhwaddr (struct sock_user *user,
-        ifname_t ifname,
-        sockaddr_t *addr)
+lwip_S_iioctl_siocgifhwaddr (struct sock_user * user,
+			     ifname_t ifname, sockaddr_t * addr)
 {
   error_t err = 0;
   struct netif *netif;
@@ -284,19 +275,17 @@ lwip_S_iioctl_siocgifhwaddr (struct sock_user *user,
   if (!netif)
     err = ENODEV;
   else
-  {
-    memcpy(addr->sa_data, netif->hwaddr, netif->hwaddr_len);
-    addr->sa_family = netif_get_state(netif)->type;
-  }
+    {
+      memcpy (addr->sa_data, netif->hwaddr, netif->hwaddr_len);
+      addr->sa_family = netif_get_state (netif)->type;
+    }
 
   return err;
 }
 
 /* 51 SIOCGIFMTU -- Get mtu of a network interface.  */
 error_t
-lwip_S_iioctl_siocgifmtu (struct sock_user *user,
-        ifname_t ifnam,
-        int *mtu)
+lwip_S_iioctl_siocgifmtu (struct sock_user * user, ifname_t ifnam, int *mtu)
 {
   error_t err = 0;
   struct netif *netif;
@@ -305,18 +294,16 @@ lwip_S_iioctl_siocgifmtu (struct sock_user *user,
   if (!netif)
     err = ENODEV;
   else
-  {
-    *mtu = netif->mtu;
-  }
+    {
+      *mtu = netif->mtu;
+    }
 
   return err;
 }
 
 /* 51 SIOCSIFMTU -- Set mtu of a network interface.  */
 error_t
-lwip_S_iioctl_siocsifmtu (struct sock_user *user,
-        ifname_t ifnam,
-        int mtu)
+lwip_S_iioctl_siocsifmtu (struct sock_user * user, ifname_t ifnam, int mtu)
 {
   error_t err = 0;
   struct netif *netif;
@@ -334,38 +321,37 @@ lwip_S_iioctl_siocsifmtu (struct sock_user *user,
   if (!netif)
     err = ENODEV;
   else
-  {
-    err = netif_get_state(netif)->update_mtu(netif, mtu);
-  }
+    {
+      err = netif_get_state (netif)->update_mtu (netif, mtu);
+    }
 
   return err;
 }
 
 /* 100 SIOCGIFINDEX -- Get index number of a network interface.  */
 error_t
-lwip_S_iioctl_siocgifindex (struct sock_user *user,
-          ifname_t ifnam,
-          int *index)
+lwip_S_iioctl_siocgifindex (struct sock_user * user,
+			    ifname_t ifnam, int *index)
 {
   error_t err = 0;
   struct netif *netif;
   int i;
 
-  i = 1; /* The first index must be 1 */
+  i = 1;			/* The first index must be 1 */
   netif = netif_list;
-  while(netif != 0)
-  {
-    if (strcmp (netif_get_state(netif)->devname, ifnam) == 0)
+  while (netif != 0)
     {
-      *index = i;
-      break;
+      if (strcmp (netif_get_state (netif)->devname, ifnam) == 0)
+	{
+	  *index = i;
+	  break;
+	}
+
+      netif = netif->next;
+      i++;
     }
 
-    netif = netif->next;
-    i++;
-  }
-
-  if(!netif)
+  if (!netif)
     err = ENODEV;
 
   return err;
@@ -373,35 +359,34 @@ lwip_S_iioctl_siocgifindex (struct sock_user *user,
 
 /* 101 SIOCGIFNAME -- Get name of a network interface from index number.  */
 error_t
-lwip_S_iioctl_siocgifname (struct sock_user *user,
-        ifname_t ifnam,
-        int *index)
+lwip_S_iioctl_siocgifname (struct sock_user * user,
+			   ifname_t ifnam, int *index)
 {
   error_t err = 0;
   struct netif *netif;
   int i;
 
-  if(*index < 0)
+  if (*index < 0)
     return EINVAL;
 
-  i = 1; /* The first index is 1 */
+  i = 1;			/* The first index is 1 */
   netif = netif_list;
-  while(netif != 0)
-  {
-    if(i == *index)
-      break;
+  while (netif != 0)
+    {
+      if (i == *index)
+	break;
 
-    netif = netif->next;
-    i++;
-  }
+      netif = netif->next;
+      i++;
+    }
 
-  if(!netif)
+  if (!netif)
     err = ENODEV;
   else
-  {
-    strncpy (ifnam, netif_get_state(netif)->devname, IFNAMSIZ);
-    ifnam[IFNAMSIZ-1] = '\0';
-  }
+    {
+      strncpy (ifnam, netif_get_state (netif)->devname, IFNAMSIZ);
+      ifnam[IFNAMSIZ - 1] = '\0';
+    }
 
   return err;
 }

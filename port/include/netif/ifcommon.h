@@ -24,7 +24,8 @@
 /*
  * Helper struct to hold private data used to operate your interface.
  */
-struct ifcommon {
+struct ifcommon
+{
   uint16_t type;
   device_t ether_port;
   struct port_info *readpt;
@@ -33,9 +34,9 @@ struct ifcommon {
   uint16_t flags;
 
   /* Callbacks */
-  error_t (*terminate)(struct netif *netif);
-  error_t (*update_mtu)(struct netif *netif, uint32_t mtu);
-  error_t (*change_flags)(struct netif *netif, uint16_t flags);
+    error_t (*terminate) (struct netif * netif);
+    error_t (*update_mtu) (struct netif * netif, uint32_t mtu);
+    error_t (*change_flags) (struct netif * netif, uint16_t flags);
 };
 
 /* Get the state from a netif */

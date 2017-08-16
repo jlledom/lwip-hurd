@@ -29,40 +29,38 @@
 #include <lwip/sockets.h>
 
 error_t
-lwip_S_io_write (struct sock_user *user,
-	    char *data,
-	    size_t datalen,
-	    off_t offset,
-	    mach_msg_type_number_t *amount)
+lwip_S_io_write (struct sock_user * user,
+		 char *data,
+		 size_t datalen,
+		 off_t offset, mach_msg_type_number_t * amount)
 {
   int sent;
   int sockflags;
   struct iovec iov = { data, datalen };
-  struct msghdr m = { msg_name: 0, msg_namelen: 0, msg_flags: 0,
-		      msg_controllen: 0, msg_iov: &iov, msg_iovlen: 1 };
+struct msghdr m = { msg_name: 0, msg_namelen: 0, msg_flags:0,
+  msg_controllen: 0, msg_iov: &iov, msg_iovlen:1
+  };
 
   if (!user)
     return EOPNOTSUPP;
 
-  sockflags = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
+  sockflags = lwip_fcntl (user->sock->sockno, F_GETFL, 0);
   if (sockflags & O_NONBLOCK)
     m.msg_flags |= MSG_DONTWAIT;
-  sent = lwip_sendmsg(user->sock->sockno, &m, 0);
+  sent = lwip_sendmsg (user->sock->sockno, &m, 0);
 
   if (sent >= 0)
-  {
-    *amount = sent;
-  }
-  
+    {
+      *amount = sent;
+    }
+
   return errno;
 }
 
 error_t
-lwip_S_io_read (struct sock_user *user,
-	   char **data,
-	   size_t *datalen,
-	   off_t offset,
-	   mach_msg_type_number_t amount)
+lwip_S_io_read (struct sock_user * user,
+		char **data,
+		size_t * datalen, off_t offset, mach_msg_type_number_t amount)
 {
   error_t err;
   int alloced = 0;
@@ -75,69 +73,65 @@ lwip_S_io_read (struct sock_user *user,
      allocate as much as necessary. */
   if (amount > *datalen)
     {
-      *data = mmap (0, amount, PROT_READ|PROT_WRITE, MAP_ANON, 0, 0);
+      *data = mmap (0, amount, PROT_READ | PROT_WRITE, MAP_ANON, 0, 0);
       if (*data == MAP_FAILED)
-        /* Should check whether errno is indeed ENOMEM --
-           but this can't be done in a straightforward way,
-           because the glue headers #undef errno. */
-        return ENOMEM;
+	/* Should check whether errno is indeed ENOMEM --
+	   but this can't be done in a straightforward way,
+	   because the glue headers #undef errno. */
+	return ENOMEM;
       alloced = 1;
     }
-  
-  /* Get flags */
-  flags = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
 
-  err = lwip_recv(user->sock->sockno, *data, amount,
-                  (flags & O_NONBLOCK) ? MSG_DONTWAIT : 0);
+  /* Get flags */
+  flags = lwip_fcntl (user->sock->sockno, F_GETFL, 0);
+
+  err = lwip_recv (user->sock->sockno, *data, amount,
+		   (flags & O_NONBLOCK) ? MSG_DONTWAIT : 0);
 
   if (err < 0)
-  {
-    if (alloced)
-      munmap (*data, amount);
-  }
+    {
+      if (alloced)
+	munmap (*data, amount);
+    }
   else
-  {
-    *datalen = err;
-    if (alloced && round_page (*datalen) < round_page (amount))
-      munmap (*data + round_page (*datalen),
-    round_page (amount) - round_page (*datalen));
-    errno = 0;
-  }
-  
+    {
+      *datalen = err;
+      if (alloced && round_page (*datalen) < round_page (amount))
+	munmap (*data + round_page (*datalen),
+		round_page (amount) - round_page (*datalen));
+      errno = 0;
+    }
+
   return errno;
 }
 
 error_t
-lwip_S_io_seek (struct sock_user *user,
-	   off_t offset,
-	   int whence,
-	   off_t *newp)
+lwip_S_io_seek (struct sock_user * user,
+		off_t offset, int whence, off_t * newp)
 {
   return user ? ESPIPE : EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_readable (struct sock_user *user,
-	       mach_msg_type_number_t *amount)
+lwip_S_io_readable (struct sock_user * user, mach_msg_type_number_t * amount)
 {
   error_t err;
   if (!user)
     return EOPNOTSUPP;
-  
-  err = lwip_ioctl(user->sock->sockno, FIONREAD, amount);
-  
-  if(err < 0)
+
+  err = lwip_ioctl (user->sock->sockno, FIONREAD, amount);
+
+  if (err < 0)
     *amount = 0;
-  
+
   return errno;
 }
 
 error_t
-lwip_S_io_set_all_openmodes (struct sock_user *user,
-			int bits)
+lwip_S_io_set_all_openmodes (struct sock_user * user, int bits)
 {
   int opt;
-  
+
   if (!user)
     return EOPNOTSUPP;
 
@@ -145,54 +139,51 @@ lwip_S_io_set_all_openmodes (struct sock_user *user,
     opt = 1;
   else
     opt = 0;
-  
-  lwip_ioctl(user->sock->sockno, FIONBIO, &opt);
-  
+
+  lwip_ioctl (user->sock->sockno, FIONBIO, &opt);
+
   return errno;
 }
 
 error_t
-lwip_S_io_get_openmodes (struct sock_user *user,
-		    int *bits)
+lwip_S_io_get_openmodes (struct sock_user * user, int *bits)
 {
   if (!user)
     return EOPNOTSUPP;
 
-  *bits = lwip_fcntl(user->sock->sockno, F_GETFL, 0);
+  *bits = lwip_fcntl (user->sock->sockno, F_GETFL, 0);
 
   return errno;
 }
 
 error_t
-lwip_S_io_set_some_openmodes (struct sock_user *user,
-			 int bits)
-{
-  if (!user)
-    return EOPNOTSUPP;
-
-  if (bits & O_NONBLOCK)
-  {
-    int opt = 1;
-    lwip_ioctl(user->sock->sockno, FIONBIO, &opt);
-  }
-    
-  return errno;
-}
-
-
-error_t
-lwip_S_io_clear_some_openmodes (struct sock_user *user,
-		   	int bits)
+lwip_S_io_set_some_openmodes (struct sock_user * user, int bits)
 {
   if (!user)
     return EOPNOTSUPP;
 
   if (bits & O_NONBLOCK)
-  {
-    int opt = 0;
-    lwip_ioctl(user->sock->sockno, FIONBIO, &opt);
-  }
-    
+    {
+      int opt = 1;
+      lwip_ioctl (user->sock->sockno, FIONBIO, &opt);
+    }
+
+  return errno;
+}
+
+
+error_t
+lwip_S_io_clear_some_openmodes (struct sock_user * user, int bits)
+{
+  if (!user)
+    return EOPNOTSUPP;
+
+  if (bits & O_NONBLOCK)
+    {
+      int opt = 0;
+      lwip_ioctl (user->sock->sockno, FIONBIO, &opt);
+    }
+
   return errno;
 }
 
@@ -201,9 +192,9 @@ lwip_S_io_clear_some_openmodes (struct sock_user *user,
  */
 static error_t
 lwip_io_select_common (struct sock_user *user,
-		  mach_port_t reply,
-		  mach_msg_type_name_t reply_type,
-		  struct timeval *tv, int *select_type)
+		       mach_port_t reply,
+		       mach_msg_type_name_t reply_type,
+		       struct timeval *tv, int *select_type)
 {
   int ret;
   int timeout;
@@ -216,79 +207,76 @@ lwip_io_select_common (struct sock_user *user,
   /* Make this thread cancellable */
   ports_interrupt_self_on_notification (user, reply, MACH_NOTIFY_DEAD_NAME);
 
-  memset(&fdp, 0, sizeof(struct pollfd));
+  memset (&fdp, 0, sizeof (struct pollfd));
   fdp.fd = user->sock->sockno;
-  
-  if(*select_type & SELECT_READ)
-  {
-    fdp.events |= POLLIN;
-  }
-  if(*select_type & SELECT_WRITE)
-  {
-    fdp.events |= POLLOUT;
-  }
-  if(*select_type & SELECT_URG)
-  {
-    fdp.events |= POLLPRI;
-  }
+
+  if (*select_type & SELECT_READ)
+    {
+      fdp.events |= POLLIN;
+    }
+  if (*select_type & SELECT_WRITE)
+    {
+      fdp.events |= POLLOUT;
+    }
+  if (*select_type & SELECT_URG)
+    {
+      fdp.events |= POLLPRI;
+    }
 
   *select_type = 0;
 
   nfds = 1;
-  timeout = tv? tv->tv_sec * 1000 + tv->tv_usec / 1000 : -1;
-  ret = lwip_poll(&fdp, nfds, timeout);
+  timeout = tv ? tv->tv_sec * 1000 + tv->tv_usec / 1000 : -1;
+  ret = lwip_poll (&fdp, nfds, timeout);
 
-  if(ret > 0)
-  {
-    if(fdp.revents & POLLIN)
-      *select_type |= SELECT_READ;
+  if (ret > 0)
+    {
+      if (fdp.revents & POLLIN)
+	*select_type |= SELECT_READ;
 
-    if(fdp.revents & POLLOUT)
-      *select_type |= SELECT_WRITE;
+      if (fdp.revents & POLLOUT)
+	*select_type |= SELECT_WRITE;
 
-    if(fdp.revents & POLLPRI)
-      *select_type |= SELECT_URG;
-}
+      if (fdp.revents & POLLPRI)
+	*select_type |= SELECT_URG;
+    }
 
   return errno;
 }
 
 error_t
-lwip_S_io_select (struct sock_user *user,
-	     mach_port_t reply,
-	     mach_msg_type_name_t reply_type,
-	     int *select_type)
+lwip_S_io_select (struct sock_user * user,
+		  mach_port_t reply,
+		  mach_msg_type_name_t reply_type, int *select_type)
 {
   return lwip_io_select_common (user, reply, reply_type, 0, select_type);
 }
 
 error_t
-lwip_S_io_select_timeout (struct sock_user *user,
-		     mach_port_t reply,
-		     mach_msg_type_name_t reply_type,
-		     struct timespec ts,
-		     int *select_type)
+lwip_S_io_select_timeout (struct sock_user * user,
+			  mach_port_t reply,
+			  mach_msg_type_name_t reply_type,
+			  struct timespec ts, int *select_type)
 {
   struct timeval tv, current_tv;
-  
-  TIMESPEC_TO_TIMEVAL(&tv, &ts);
-  gettimeofday(&current_tv, 0);
-  
+
+  TIMESPEC_TO_TIMEVAL (&tv, &ts);
+  gettimeofday (&current_tv, 0);
+
   tv.tv_sec -= current_tv.tv_sec;
   tv.tv_usec -= current_tv.tv_usec;
-  
+
   return lwip_io_select_common (user, reply, reply_type, &tv, select_type);
 }
 
 
 error_t
-lwip_S_io_stat (struct sock_user *user,
-	   struct stat *st)
+lwip_S_io_stat (struct sock_user * user, struct stat * st)
 {
   if (!user)
     return EOPNOTSUPP;
 
-  memset (st, 0, sizeof(struct stat));
+  memset (st, 0, sizeof (struct stat));
 
   st->st_fstype = FSTYPE_SOCKET;
   st->st_fsid = getpid ();
@@ -301,8 +289,7 @@ lwip_S_io_stat (struct sock_user *user,
 }
 
 error_t
-lwip_S_io_reauthenticate (struct sock_user *user,
-		     mach_port_t rend)
+lwip_S_io_reauthenticate (struct sock_user * user, mach_port_t rend)
 {
   struct sock_user *newuser;
   uid_t gubuf[20], ggbuf[20], aubuf[20], agbuf[20];
@@ -349,14 +336,14 @@ lwip_S_io_reauthenticate (struct sock_user *user,
   else
     /* Check permission as fshelp_isowner would do.  */
     for (i = 0; i < genuidlen; i++)
-    {
-      if (gen_uids[i] == 0 || gen_uids[i] == lwip_owner)
-        newuser->isroot = 1;
-      if (gen_uids[i] == lwip_group)
-        for (j = 0; j < gengidlen; j++)
-          if (gen_gids[j] == lwip_group)
-            newuser->isroot = 1;
-    }
+      {
+	if (gen_uids[i] == 0 || gen_uids[i] == lwip_owner)
+	  newuser->isroot = 1;
+	if (gen_uids[i] == lwip_group)
+	  for (j = 0; j < gengidlen; j++)
+	    if (gen_gids[j] == lwip_group)
+	      newuser->isroot = 1;
+      }
 
   mach_port_move_member (mach_task_self (), newuser->pi.port_right,
 			 lwip_bucket->portset);
@@ -376,11 +363,11 @@ lwip_S_io_reauthenticate (struct sock_user *user,
 }
 
 error_t
-lwip_S_io_restrict_auth (struct sock_user *user,
-		    mach_port_t *newobject,
-		    mach_msg_type_name_t *newobject_type,
-		    uid_t *uids, size_t uidslen,
-		    uid_t *gids, size_t gidslen)
+lwip_S_io_restrict_auth (struct sock_user * user,
+			 mach_port_t * newobject,
+			 mach_msg_type_name_t * newobject_type,
+			 uid_t * uids, size_t uidslen,
+			 uid_t * gids, size_t gidslen)
 {
   struct sock_user *newuser;
   int i, j;
@@ -393,14 +380,14 @@ lwip_S_io_restrict_auth (struct sock_user *user,
   if (user->isroot)
     /* Check permission as fshelp_isowner would do.  */
     for (i = 0; i < uidslen; i++)
-    {
-      if (uids[i] == 0 || uids[i] == lwip_owner)
-        isroot = 1;
-      if (uids[i] == lwip_group)
-        for (j = 0; j < gidslen; j++)
-          if (gids[j] == lwip_group)
-            isroot = 1;
-    }
+      {
+	if (uids[i] == 0 || uids[i] == lwip_owner)
+	  isroot = 1;
+	if (uids[i] == lwip_group)
+	  for (j = 0; j < gidslen; j++)
+	    if (gids[j] == lwip_group)
+	      isroot = 1;
+      }
 
   newuser = make_sock_user (user->sock, isroot, 0, 0);
   *newobject = ports_get_right (newuser);
@@ -411,9 +398,9 @@ lwip_S_io_restrict_auth (struct sock_user *user,
 }
 
 error_t
-lwip_S_io_duplicate (struct sock_user *user,
-		mach_port_t *newobject,
-		mach_msg_type_name_t *newobject_type)
+lwip_S_io_duplicate (struct sock_user * user,
+		     mach_port_t * newobject,
+		     mach_msg_type_name_t * newobject_type)
 {
   struct sock_user *newuser;
   if (!user)
@@ -428,12 +415,11 @@ lwip_S_io_duplicate (struct sock_user *user,
 }
 
 error_t
-lwip_S_io_identity (struct sock_user *user,
-	       mach_port_t *id,
-	       mach_msg_type_name_t *idtype,
-	       mach_port_t *fsys,
-	       mach_msg_type_name_t *fsystype,
-	       ino_t *fileno)
+lwip_S_io_identity (struct sock_user * user,
+		    mach_port_t * id,
+		    mach_msg_type_name_t * idtype,
+		    mach_port_t * fsys,
+		    mach_msg_type_name_t * fsystype, ino_t * fileno)
 {
   error_t err;
 
@@ -441,14 +427,14 @@ lwip_S_io_identity (struct sock_user *user,
     return EOPNOTSUPP;
 
   if (user->sock->identity == MACH_PORT_NULL)
-  {
-    err = mach_port_allocate (mach_task_self (), MACH_PORT_RIGHT_RECEIVE,
-      &user->sock->identity);
-    if (err)
     {
-      return err;
+      err = mach_port_allocate (mach_task_self (), MACH_PORT_RIGHT_RECEIVE,
+				&user->sock->identity);
+      if (err)
+	{
+	  return err;
+	}
     }
-  }
 
   *id = user->sock->identity;
   *idtype = MACH_MSG_TYPE_MAKE_SEND;
@@ -460,126 +446,113 @@ lwip_S_io_identity (struct sock_user *user,
 }
 
 error_t
-lwip_S_io_revoke (struct sock_user *user)
+lwip_S_io_revoke (struct sock_user * user)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_async (struct sock_user *user,
-	    mach_port_t notify,
-	    mach_port_t *id,
-	    mach_msg_type_name_t *idtype)
+lwip_S_io_async (struct sock_user * user,
+		 mach_port_t notify,
+		 mach_port_t * id, mach_msg_type_name_t * idtype)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_mod_owner (struct sock_user *user,
-		pid_t owner)
+lwip_S_io_mod_owner (struct sock_user * user, pid_t owner)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_get_owner (struct sock_user *user,
-		pid_t *owner)
+lwip_S_io_get_owner (struct sock_user * user, pid_t * owner)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_get_icky_async_id (struct sock_user *user,
-			mach_port_t *id,
-			mach_msg_type_name_t *idtype)
+lwip_S_io_get_icky_async_id (struct sock_user * user,
+			     mach_port_t * id, mach_msg_type_name_t * idtype)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_server_version (struct sock_user *user,
-		     char *name,
-		     int *major,
-		     int *minor,
-		     int *edit)
+lwip_S_io_server_version (struct sock_user * user,
+			  char *name, int *major, int *minor, int *edit)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_pathconf (struct sock_user *user,
-	       int name,
-	       int *value)
+lwip_S_io_pathconf (struct sock_user * user, int name, int *value)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_map (struct sock_user *user,
-	  mach_port_t *rdobj,
-	  mach_msg_type_name_t *rdobj_type,
-	  mach_port_t *wrobj,
-	  mach_msg_type_name_t *wrobj_type)
+lwip_S_io_map (struct sock_user * user,
+	       mach_port_t * rdobj,
+	       mach_msg_type_name_t * rdobj_type,
+	       mach_port_t * wrobj, mach_msg_type_name_t * wrobj_type)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_map_cntl (struct sock_user *user,
-	       mach_port_t *obj,
-	       mach_msg_type_name_t *obj_type)
+lwip_S_io_map_cntl (struct sock_user * user,
+		    mach_port_t * obj, mach_msg_type_name_t * obj_type)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_get_conch (struct sock_user *user)
+lwip_S_io_get_conch (struct sock_user * user)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_release_conch (struct sock_user *user)
+lwip_S_io_release_conch (struct sock_user * user)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_eofnotify (struct sock_user *user)
+lwip_S_io_eofnotify (struct sock_user * user)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_prenotify (struct sock_user *user,
-		vm_offset_t start,
-		vm_offset_t end)
+lwip_S_io_prenotify (struct sock_user * user,
+		     vm_offset_t start, vm_offset_t end)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_postnotify (struct sock_user *user,
-		 vm_offset_t start,
-		 vm_offset_t end)
+lwip_S_io_postnotify (struct sock_user * user,
+		      vm_offset_t start, vm_offset_t end)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_readnotify (struct sock_user *user)
+lwip_S_io_readnotify (struct sock_user * user)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_readsleep (struct sock_user *user)
+lwip_S_io_readsleep (struct sock_user * user)
 {
   return EOPNOTSUPP;
 }
 
 error_t
-lwip_S_io_sigio (struct sock_user *user)
+lwip_S_io_sigio (struct sock_user * user)
 {
   return EOPNOTSUPP;
 }

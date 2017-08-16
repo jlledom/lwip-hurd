@@ -30,24 +30,27 @@
 error_t
 make_sockaddr_port (int sock,
 		    int peer,
-		    mach_port_t *addr,
-		    mach_msg_type_name_t *addrtype)
+		    mach_port_t * addr, mach_msg_type_name_t * addrtype)
 {
-  union { struct sockaddr_storage storage; struct sockaddr sa; } buf;
+  union
+  {
+    struct sockaddr_storage storage;
+    struct sockaddr sa;
+  } buf;
   int buflen = sizeof buf;
   error_t err;
   struct sock_addr *addrstruct;
 
-  if(peer)
-    err = lwip_getpeername(sock, &buf.sa, (socklen_t*)&buflen);
+  if (peer)
+    err = lwip_getpeername (sock, &buf.sa, (socklen_t *) & buflen);
   else
-    err = lwip_getsockname(sock, &buf.sa, (socklen_t*)&buflen);
+    err = lwip_getsockname (sock, &buf.sa, (socklen_t *) & buflen);
   if (err)
     return -err;
 
   err = ports_create_port (addrport_class, lwip_bucket,
 			   (offsetof (struct sock_addr, address)
-			    + buflen), &addrstruct);
+			    +buflen), &addrstruct);
   if (!err)
     {
       addrstruct->address.sa.sa_family = buf.sa.sa_family;
@@ -86,10 +89,10 @@ sock_release (struct socket *sock)
 {
   if (--sock->refcnt != 0)
     return;
-  
+
   if (sock->sockno > -1)
     lwip_close (sock->sockno);
-  
+
   if (sock->identity != MACH_PORT_NULL)
     mach_port_destroy (mach_task_self (), sock->identity);
 
@@ -103,19 +106,19 @@ make_sock_user (struct socket *sock, int isroot, int noinstall, int consume)
 {
   error_t err;
   struct sock_user *user;
-  
+
   assert (sock->refcnt != 0);
 
   if (noinstall)
     err = ports_create_port_noinstall (socketport_class, lwip_bucket,
-              sizeof (struct sock_user), &user);
+				       sizeof (struct sock_user), &user);
   else
     err = ports_create_port (socketport_class, lwip_bucket,
-              sizeof (struct sock_user), &user);
+			     sizeof (struct sock_user), &user);
   if (err)
     return 0;
 
-  if (! consume)
+  if (!consume)
     ++sock->refcnt;
 
   user->isroot = isroot;
@@ -128,8 +131,8 @@ void
 clean_socketport (void *arg)
 {
   struct sock_user *const user = arg;
-  
-  sock_release(user->sock);
+
+  sock_release (user->sock);
 }
 
 /* Nothing need be done here. */

@@ -57,16 +57,16 @@ struct parse_hook
 };
 
 /* Lwip translator options.  Used for both startup and runtime.  */
-static const struct argp_option options[] =
-{
-  {"interface", 'i', "DEVICE",   0,  "Network interface to use", 1},
-  {0,0,0,0,"These apply to a given interface:", 2},
-  {"address",   'a', "ADDRESS",  OPTION_ARG_OPTIONAL, "Set the network address"},
-  {"netmask",   'm', "MASK",     OPTION_ARG_OPTIONAL, "Set the netmask"},
-  {"gateway",   'g', "ADDRESS",  OPTION_ARG_OPTIONAL, "Set the default gateway"},
-  {"ipv4",      '4', "NAME",     0, "Put active IPv4 translator on NAME"},
-  {"ipv6",      '6', "NAME",     0, "Put active IPv6 translator on NAME"},
-  {"address6",  'A', "ADDR/LEN", OPTION_ARG_OPTIONAL, "Set the global IPv6 address"},
+static const struct argp_option options[] = {
+  {"interface", 'i', "DEVICE", 0, "Network interface to use", 1},
+  {0, 0, 0, 0, "These apply to a given interface:", 2},
+  {"address", 'a', "ADDRESS", OPTION_ARG_OPTIONAL, "Set the network address"},
+  {"netmask", 'm', "MASK", OPTION_ARG_OPTIONAL, "Set the netmask"},
+  {"gateway", 'g', "ADDRESS", OPTION_ARG_OPTIONAL, "Set the default gateway"},
+  {"ipv4", '4', "NAME", 0, "Put active IPv4 translator on NAME"},
+  {"ipv6", '6', "NAME", 0, "Put active IPv6 translator on NAME"},
+  {"address6", 'A', "ADDR/LEN", OPTION_ARG_OPTIONAL,
+   "Set the global IPv6 address"},
   {0}
 };
 

@@ -28,6 +28,6 @@
 
 typedef struct ifcommon hurdloopif;
 
-err_t hurdloopif_init(struct netif *netif);
+err_t hurdloopif_init (struct netif *netif);
 
 #endif /* LWIP_HURDLOOPIF_H */
