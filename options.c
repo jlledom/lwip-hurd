@@ -34,6 +34,8 @@
 #include <lwip-util.h>
 #include <netif/ifcommon.h>
 
+/* Fsysopts and command line option parsing */
+
 /* Adds an empty interface slot to H, and sets H's current interface to it, or
    returns an error. */
 static error_t

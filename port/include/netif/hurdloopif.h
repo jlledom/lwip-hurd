@@ -18,6 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
+/* Loopback devices module */
+
 #ifndef LWIP_HURDLOOPIF_H
 #define LWIP_HURDLOOPIF_H
 
@@ -28,6 +30,7 @@
 
 typedef struct ifcommon hurdloopif;
 
+/* Device initialization */
 err_t hurdloopif_init (struct netif *netif);
 
 #endif /* LWIP_HURDLOOPIF_H */

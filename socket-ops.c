@@ -18,6 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
+/* Socket operations */
+
 #include <lwip_socket_S.h>
 
 #include <sys/mman.h>
@@ -224,7 +226,7 @@ lwip_S_socket_peername (struct sock_user * user,
 error_t
 lwip_S_socket_connect2 (struct sock_user * user, struct sock_user * sock2)
 {
-  //We don't answer AF_UNIX requests
+  /* We don't answer AF_UNIX requests */
   return EOPNOTSUPP;
 }
 

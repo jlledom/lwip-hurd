@@ -18,6 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
+/* General input/output operations */
+
 #include <lwip_io_S.h>
 
 #include <sys/mman.h>
@@ -188,7 +190,7 @@ lwip_S_io_clear_some_openmodes (struct sock_user * user, int bits)
 }
 
 /*
- * Arrange things to call lwip_select()
+ * Arrange things to call lwip_poll()
  */
 static error_t
 lwip_io_select_common (struct sock_user *user,

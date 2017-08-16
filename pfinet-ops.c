@@ -18,6 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
+/* Operations offered by the stack */
+
 #include <lwip_pfinet_S.h>
 
 #include <string.h>

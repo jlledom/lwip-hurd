@@ -39,8 +39,7 @@
 #define _GNU_SOURCE
 #endif
 
-extern boolean_t mighello_server
-  (mach_msg_header_t * InHeadP, mach_msg_header_t * OutHeadP);
+/* Translator initialization */
 
 extern struct argp lwip_argp;
 

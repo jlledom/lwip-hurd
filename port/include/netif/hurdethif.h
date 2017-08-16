@@ -18,6 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
+/* Ethernet devices module */
+
 #ifndef LWIP_HURDETHIF_H
 #define LWIP_HURDETHIF_H
 
@@ -28,7 +30,10 @@
 
 typedef struct ifcommon hurdethif;
 
+/* Device inicialization */
 err_t hurdethif_init (struct netif *netif);
+
+/* Module initialization */
 error_t hurdethif_module_init ();
 
 #endif /* LWIP_HURDETHIF_H */

@@ -18,6 +18,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
+/* Tunnel devices module */
+
 #ifndef LWIP_HURDTUNIF_H
 #define LWIP_HURDTUNIF_H
 
@@ -54,7 +56,10 @@ struct hurdtunif
 struct port_class *tunnel_cntlclass;
 struct port_class *tunnel_class;
 
+/* Device initialization */
 err_t hurdtunif_init (struct netif *netif);
+
+/* Module initialization */
 error_t hurdtunif_module_init ();
 
 #endif /* LWIP_HURDTUNIF_H */
