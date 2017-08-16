@@ -34,14 +34,9 @@
 static void
 enqueue (struct pbufqueue *q, struct pbuf *p)
 {
-  if (q->tail)
-    q->tail->next = p;
-
-  q->tail = p;
-  q->tail->next = 0;
-
-  if (!q->head)
-    q->head = q->tail;
+  *(q->tail) = p;
+  p->next = 0;
+  q->tail = &p->next;
 
   q->len++;
 }
@@ -52,18 +47,16 @@ dequeue (struct pbufqueue *q)
 {
   struct pbuf *ret;
 
-  if (q->head)
-    {
-      ret = q->head;
-      q->head = q->head->next;
-      ret->next = 0;
-      q->len--;
-    }
-  else
-    ret = 0;
+  if(!q->head)
+    return 0;
+
+  ret = q->head;
+  q->head = q->head->next;
+  ret->next = 0;
+  q->len--;
 
   if (!q->head)
-    q->tail = 0;
+    q->tail = &q->head;
 
   return ret;
 }
@@ -243,7 +236,8 @@ hurdtunif_init (struct netif * netif)
   tunif->cntl->hook = netif;
 
   /* Output queue initialization */
-  tunif->queue.head = tunif->queue.tail = 0;
+  tunif->queue.head = 0;
+  tunif->queue.tail = &tunif->queue.head;
   tunif->queue.len = 0;
   pthread_mutex_init (&tunif->lock, NULL);
   pthread_cond_init (&tunif->read, NULL);

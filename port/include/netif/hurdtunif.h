@@ -32,7 +32,7 @@
 struct pbufqueue
 {
   struct pbuf *head;
-  struct pbuf *tail;
+  struct pbuf **tail;
   uint8_t len;
 };
 
