@@ -506,8 +506,7 @@ hurdethif_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
       MACH_MSG_TYPE_PROTECTED_PAYLOAD)
     {
       struct port_info *pi = ports_lookup_payload (NULL,
-						   inp->
-						   msgh_protected_payload,
+						   inp->msgh_protected_payload,
 						   NULL);
       if (pi)
 	{

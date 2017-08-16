@@ -47,7 +47,7 @@ dequeue (struct pbufqueue *q)
 {
   struct pbuf *ret;
 
-  if(!q->head)
+  if (!q->head)
     return 0;
 
   ret = q->head;
