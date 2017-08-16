@@ -42,10 +42,6 @@
 #include <lwip/ethip6.h>
 #include <lwip/etharp.h>
 
-/* Define those to better describe your network interface. */
-#define IFNAME0 'e'
-#define IFNAME1 'n'
-
 /* Get the MAC address from an array of int */
 #define GET_HWADDR_BYTE(x,n)  (((char*)x)[n])
 
