@@ -1,6 +1,6 @@
 /*
-   Copyright (C) 1995,96,2000 Free Software Foundation, Inc.
-   Written by Michael I. Bushnell, p/BSG.
+   Copyright (C) 2017 Free Software Foundation, Inc.
+   Written by Joan Lledó.
 
    This file is part of the GNU Hurd.
 

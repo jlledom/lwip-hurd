@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2000, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2017 Free Software Foundation, Inc.
    Written by Joan Lledó.
 
    This file is part of the GNU Hurd.
