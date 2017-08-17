@@ -30,7 +30,7 @@
 
 typedef struct ifcommon hurdethif;
 
-/* Device inicialization */
+/* Device initialization */
 err_t hurdethif_init (struct netif *netif);
 
 /* Module initialization */
