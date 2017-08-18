@@ -29,6 +29,7 @@
 #include <net/if_arp.h>
 
 #include <lwip/netif.h>
+#include <lwip/tcpip.h>
 
 #include <lwip-hurd.h>
 #include <lwip-util.h>
