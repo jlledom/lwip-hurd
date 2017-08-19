@@ -16,21 +16,20 @@
 #   along with this program; if not, write to the Free Software
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 
-dir			= lwip
+dir		= lwip
 makemode	= server
 
 PORTDIR = $(srcdir)/port
-LIBLWIPDIR = $(srcdir)/../liblwip
 
 SRCS		= main.c io-ops.c socket-ops.c pfinet-ops.c iioctl-ops.c port-objs.c \
 						options.c lwip-util.c
 IFSRCS	= hurdethif.c hurdloopif.c hurdtunif.c
 MIGSRCS		= ioServer.c socketServer.c pfinetServer.c iioctlServer.c
 OBJS		= $(patsubst %.S,%.o,$(patsubst %.c,%.o,\
-				$(SRCS) $(IFSRCS) $(MIGSRCS)))
+			$(SRCS) $(IFSRCS) $(MIGSRCS)))
 
-HURDLIBS= lwip trivfs fshelp ports ihash shouldbeinlibc iohelp
-LDLIBS = -lpthread
+HURDLIBS= trivfs fshelp ports ihash shouldbeinlibc iohelp
+LDLIBS = -lpthread -llwip
 
 target = lwip
 
@@ -39,9 +38,7 @@ include ../Makeconf
 vpath %.c $(PORTDIR) \
 		$(PORTDIR)/netif
 
-CFLAGS += -I$(PORTDIR)/include \
-		-I$(LIBLWIPDIR)/dist/include \
-		-I$(LIBLWIPDIR)/port/include
+CFLAGS += -I$(PORTDIR)/include -I$(includedir)/lwip
 
 CPPFLAGS += -imacros $(srcdir)/config.h
 MIGCOMSFLAGS += -prefix lwip_
