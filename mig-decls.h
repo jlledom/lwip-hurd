@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 1995,96,2000 Free Software Foundation, Inc.
+   Copyright (C) 1995,96,2000,2017 Free Software Foundation, Inc.
    Written by Michael I. Bushnell, p/BSG.
 
    This file is part of the GNU Hurd.
@@ -15,7 +15,8 @@
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with the GNU Hurd.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with the GNU Hurd.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #ifndef __LWIP_MIG_DECLS_H__
 #define __LWIP_MIG_DECLS_H__

@@ -1,6 +1,8 @@
 /*
-   Copyright (C) 2017 Free Software Foundation, Inc.
-   Written by Joan Lledó.
+   Copyright (C) 1996, 1997, 2000, 2001, 2006, 2007, 2017
+     Free Software Foundation, Inc.
+
+   Written by Miles Bader <miles@gnu.org>
 
    This file is part of the GNU Hurd.
 
@@ -15,8 +17,10 @@
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
+   along with the GNU Hurd.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* Fsysopts and command line option parsing */
 
 #include <options.h>
 

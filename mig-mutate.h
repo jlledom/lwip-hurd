@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 1995 Free Software Foundation, Inc.
+   Copyright (C) 1995,2017 Free Software Foundation, Inc.
    Written by Michael I. Bushnell, p/BSG.
 
    This file is part of the GNU Hurd.
@@ -15,8 +15,8 @@
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
+   along with the GNU Hurd.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 /* Only CPP macro definitions should go in this file. */
 
