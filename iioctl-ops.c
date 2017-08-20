@@ -175,7 +175,6 @@ lwip_S_iioctl_siocsifflags (struct sock_user * user,
 			    short flags)
 {
   error_t err = 0;
-
   struct netif *netif;
 
   if (!user)
@@ -202,6 +201,9 @@ lwip_S_iioctl_siocgifflags (struct sock_user * user, char *name, short *flags)
   error_t err = 0;
   struct netif *netif;
 
+  if (!user)
+    return EOPNOTSUPP;
+
   netif = get_if (name);
   if (!netif)
     err = ENODEV;
@@ -227,6 +229,9 @@ lwip_S_iioctl_siocgifmetric (struct sock_user * user,
 {
   error_t err = 0;
   struct netif *netif;
+
+  if (!user)
+    return EOPNOTSUPP;
 
   netif = get_if (ifnam);
   if (!netif)
@@ -278,6 +283,9 @@ lwip_S_iioctl_siocgifhwaddr (struct sock_user * user,
   error_t err = 0;
   struct netif *netif;
 
+  if (!user)
+    return EOPNOTSUPP;
+
   netif = get_if (ifname);
   if (!netif)
     err = ENODEV;
@@ -296,6 +304,9 @@ lwip_S_iioctl_siocgifmtu (struct sock_user * user, ifname_t ifnam, int *mtu)
 {
   error_t err = 0;
   struct netif *netif;
+
+  if (!user)
+    return EOPNOTSUPP;
 
   netif = get_if (ifnam);
   if (!netif)
@@ -345,6 +356,9 @@ lwip_S_iioctl_siocgifindex (struct sock_user * user,
   struct netif *netif;
   int i;
 
+  if (!user)
+    return EOPNOTSUPP;
+
   i = 1;			/* The first index must be 1 */
   netif = netif_list;
   while (netif != 0)
@@ -374,6 +388,9 @@ lwip_S_iioctl_siocgifname (struct sock_user * user,
   error_t err = 0;
   struct netif *netif;
   int i;
+
+  if (!user)
+    return EOPNOTSUPP;
 
   if (*index < 0)
     return EINVAL;
