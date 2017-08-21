@@ -214,7 +214,10 @@ hurdtunif_init (struct netif * netif)
 					O_CREAT | O_NOTRANS, 0664);
 
   if (tunif->underlying == MACH_PORT_NULL)
-    error (2, 1, "%s", tunif->comm.devname);
+    {
+      error (0, 0, "%s", tunif->comm.devname);
+      return -1;
+    }
 
   err = trivfs_create_control (tunif->underlying, tunnel_cntlclass,
 			       lwip_bucket, tunnel_class, lwip_bucket,
@@ -230,7 +233,7 @@ hurdtunif_init (struct netif * netif)
     }
 
   if (err)
-    error (2, err, "%s", tunif->comm.devname);
+    error (0, err, "%s", tunif->comm.devname);
 
   /* We'll need to get the netif from trivfs operations */
   tunif->cntl->hook = netif;
