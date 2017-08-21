@@ -145,10 +145,10 @@ hurdethif_device_set_flags (struct netif *netif, uint16_t flags)
 }
 
 /* Use the device interface to access the device */
-static err_t
+static error_t
 hurdethif_device_open (struct netif *netif)
 {
-  err_t err = ERR_OK;
+  error_t err = ERR_OK;
   device_t master_device;
   hurdethif *ethif = netif_get_state (netif);
 
@@ -231,7 +231,7 @@ hurdethif_device_open (struct netif *netif)
 }
 
 /* Destroy our link to the device */
-static err_t
+static error_t
 hurdethif_device_close (struct netif *netif)
 {
   hurdethif *ethif = netif_get_state (netif);
@@ -251,10 +251,10 @@ hurdethif_device_close (struct netif *netif)
  * In this function, the hardware should be initialized.
  * Called from hurdethif_init().
  */
-static err_t
+static error_t
 hurdethif_low_level_init (struct netif *netif)
 {
-  err_t err;
+  error_t err;
   size_t count = 2;
   int net_address[2];
   device_t ether_port;
@@ -324,7 +324,7 @@ hurdethif_low_level_init (struct netif *netif)
  * contained in the pbuf that is passed to the function. This pbuf
  * might be chained.
  */
-static err_t
+static error_t
 hurdethif_low_level_output (struct netif *netif, struct pbuf *p)
 {
   error_t err;
@@ -602,7 +602,7 @@ hurdethif_terminate (struct netif * netif)
  * This function should be passed as a parameter to netif_add() so it may be
  * called many times.
  */
-err_t
+error_t
 hurdethif_init (struct netif * netif)
 {
   hurdethif *ethif;

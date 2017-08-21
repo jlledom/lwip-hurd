@@ -112,11 +112,11 @@ hurdtunif_terminate (struct netif * netif)
   return 0;
 }
 
-err_t
+error_t
 hurdtunif_output (struct netif * netif, struct pbuf * p,
 		  const ip4_addr_t * ipaddr)
 {
-  err_t err = 0;
+  error_t err = 0;
   struct hurdtunif *tunif;
   struct pbuf *pcopy, *oldest;
 
@@ -164,10 +164,10 @@ hurdtunif_output (struct netif * netif, struct pbuf * p,
  *
  * This function should be passed as a parameter to netif_add().
  */
-err_t
+error_t
 hurdtunif_init (struct netif * netif)
 {
-  err_t err = 0;
+  error_t err = 0;
   struct hurdtunif *tunif;
   char *base_name, *name = netif->state;
 

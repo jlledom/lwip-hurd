@@ -31,6 +31,6 @@
 typedef struct ifcommon hurdloopif;
 
 /* Device initialization */
-err_t hurdloopif_init (struct netif *netif);
+error_t hurdloopif_init (struct netif *netif);
 
 #endif /* LWIP_HURDLOOPIF_H */

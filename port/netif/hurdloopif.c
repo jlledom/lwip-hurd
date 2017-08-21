@@ -73,10 +73,10 @@ hurdloopif_terminate (struct netif * netif)
  * This function should be passed as a parameter to netif_add() so it may be
  * called many times.
  */
-err_t
+error_t
 hurdloopif_init (struct netif * netif)
 {
-  err_t err = 0;
+  error_t err = 0;
   hurdloopif *loopif;
 
   loopif = netif_get_state (netif);

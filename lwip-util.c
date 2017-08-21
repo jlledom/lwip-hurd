@@ -144,7 +144,7 @@ remove_ifs ()
 void
 init_ifs (void *arg)
 {
-  err_t err;
+  error_t err;
   struct parse_interface *in;
   struct parse_hook *ifs;
   struct netif *netif;
