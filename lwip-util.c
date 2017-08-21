@@ -144,6 +144,7 @@ remove_ifs ()
 void
 init_ifs (void *arg)
 {
+  err_t err;
   struct parse_interface *in;
   struct parse_hook *ifs;
   struct netif *netif;
@@ -183,9 +184,18 @@ init_ifs (void *arg)
        *
        * Fifth parameter (in->name) is a hook.
        */
-      netifapi_netif_add (netif, &in->address, &in->netmask, &in->gateway,
-			  in->dev_name, get_module_init (in->dev_name),
-			  tcpip_input);
+      err = netifapi_netif_add
+	(netif, &in->address, &in->netmask, &in->gateway, in->dev_name,
+	 get_module_init (in->dev_name), tcpip_input);
+      if (err)
+	{
+	  /* The interface failed to init */
+	  if (netif->state != in->dev_name)
+	    /* It failed after setting the control block, must free it */
+	    mem_free (netif->state);
+	  free (netif);
+	  continue;
+	}
 
       /* Add IPv6 configuration */
       netif->ip6_autoconfig_enabled = 1;
