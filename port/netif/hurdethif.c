@@ -152,66 +152,77 @@ hurdethif_device_open (struct netif *netif)
   device_t master_device;
   hurdethif *ethif = netif_get_state (netif);
 
-  LWIP_ASSERT ("hurdethif->ether_port == MACH_PORT_NULL",
-	       ethif->ether_port == MACH_PORT_NULL);
+  if (ethif->ether_port != MACH_PORT_NULL)
+    {
+      error (0, 0, "Already opened: %s", ethif->devname);
+      return -1;
+    }
 
   err = ports_create_port (etherread_class, etherport_bucket,
 			   sizeof (struct port_info), &ethif->readpt);
-  LWIP_ASSERT ("err==0", err == 0);
-  ethif->readptname = ports_get_right (ethif->readpt);
-  mach_port_insert_right (mach_task_self (), ethif->readptname,
-			  ethif->readptname, MACH_MSG_TYPE_MAKE_SEND);
-
-  mach_port_set_qlimit (mach_task_self (), ethif->readptname,
-			MACH_PORT_QLIMIT_MAX);
-
-  master_device = file_name_lookup (ethif->devname, O_RDWR, 0);
-  if (master_device != MACH_PORT_NULL)
+  if (err)
     {
-      /* The device name here is the path of a device file.  */
-      err = device_open (master_device, D_WRITE | D_READ,
-			 "eth", &ethif->ether_port);
-      mach_port_deallocate (mach_task_self (), master_device);
-      if (err)
-	error (0, err, "device_open on %s", ethif->devname);
-      else
-	{
-	  err = device_set_filter (ethif->ether_port, ethif->readptname,
-				   MACH_MSG_TYPE_MAKE_SEND, 0,
-				   (filter_array_t) bpf_ether_filter,
-				   bpf_ether_filter_len);
-	  if (err)
-	    error (0, err, "device_set_filter on %s", ethif->devname);
-	}
+      error (0, err, "ports_create_port on %s", ethif->devname);
     }
   else
     {
-      /* No, perhaps a Mach device?  */
-      int file_errno = errno;
-      err = get_privileged_ports (0, &master_device);
-      if (err)
+      ethif->readptname = ports_get_right (ethif->readpt);
+      mach_port_insert_right (mach_task_self (), ethif->readptname,
+			      ethif->readptname, MACH_MSG_TYPE_MAKE_SEND);
+
+      mach_port_set_qlimit (mach_task_self (), ethif->readptname,
+			    MACH_PORT_QLIMIT_MAX);
+
+      master_device = file_name_lookup (ethif->devname, O_RDWR, 0);
+      if (master_device != MACH_PORT_NULL)
 	{
-	  error (0, file_errno, "file_name_lookup %s", ethif->devname);
-	  error (0, err, "and cannot get device master port");
-	}
-      else
-	{
+	  /* The device name here is the path of a device file.  */
 	  err = device_open (master_device, D_WRITE | D_READ,
-			     ethif->devname, &ethif->ether_port);
+			     "eth", &ethif->ether_port);
 	  mach_port_deallocate (mach_task_self (), master_device);
 	  if (err)
-	    {
-	      error (0, file_errno, "file_name_lookup %s", ethif->devname);
-	      error (0, err, "device_open(%s)", ethif->devname);
-	    }
+	    error (0, err, "device_open on %s", ethif->devname);
 	  else
 	    {
 	      err = device_set_filter (ethif->ether_port, ethif->readptname,
 				       MACH_MSG_TYPE_MAKE_SEND, 0,
-				       (filter_array_t) ether_filter,
-				       ether_filter_len);
+				       (filter_array_t) bpf_ether_filter,
+				       bpf_ether_filter_len);
 	      if (err)
 		error (0, err, "device_set_filter on %s", ethif->devname);
+	    }
+	}
+      else
+	{
+	  /* No, perhaps a Mach device?  */
+	  int file_errno = errno;
+	  err = get_privileged_ports (0, &master_device);
+	  if (err)
+	    {
+	      error (0, file_errno, "file_name_lookup %s", ethif->devname);
+	      error (0, err, "and cannot get device master port");
+	    }
+	  else
+	    {
+	      err = device_open (master_device, D_WRITE | D_READ,
+				 ethif->devname, &ethif->ether_port);
+	      mach_port_deallocate (mach_task_self (), master_device);
+	      if (err)
+		{
+		  error (0, file_errno, "file_name_lookup %s",
+			 ethif->devname);
+		  error (0, err, "device_open(%s)", ethif->devname);
+		}
+	      else
+		{
+		  err =
+		    device_set_filter (ethif->ether_port, ethif->readptname,
+				       MACH_MSG_TYPE_MAKE_SEND, 0,
+				       (filter_array_t) ether_filter,
+				       ether_filter_len);
+		  if (err)
+		    error (0, err, "device_set_filter on %s", ethif->devname);
+		}
 	    }
 	}
     }
@@ -249,7 +260,8 @@ hurdethif_low_level_init (struct netif *netif)
   device_t ether_port;
 
   err = hurdethif_device_open (netif);
-  LWIP_ASSERT ("err==0", err == 0);
+  if (err)
+    return err;
 
   /* et the MAC address */
   ether_port = netif_get_state (netif)->ether_port;
@@ -257,10 +269,8 @@ hurdethif_low_level_init (struct netif *netif)
   if (err)
     error (0, err, "%s: Cannot get hardware Ethernet address",
 	   netif_get_state (netif)->devname);
-  else
+  else if (count * sizeof (int) >= ETHARP_HWADDR_LEN)
     {
-      LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
-		   count * sizeof (int) >= ETHARP_HWADDR_LEN);
       net_address[0] = ntohl (net_address[0]);
       net_address[1] = ntohl (net_address[1]);
 
@@ -275,6 +285,9 @@ hurdethif_low_level_init (struct netif *netif)
       netif->hwaddr[4] = GET_HWADDR_BYTE (net_address, 4);
       netif->hwaddr[5] = GET_HWADDR_BYTE (net_address, 5);
     }
+  else
+    error (0, 0, "%s: Invalid Ethernet address",
+	   netif_get_state (netif)->devname);
 
   /* maximum transfer unit */
   netif->mtu = TCP_MSS + 0x28;
@@ -303,7 +316,7 @@ hurdethif_low_level_init (struct netif *netif)
     }
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
 
-  return 0;
+  return ERR_OK;
 }
 
 /*
@@ -319,11 +332,14 @@ hurdethif_low_level_output (struct netif *netif, struct pbuf *p)
   int count;
   u8_t tried;
 
+  if (p->tot_len != p->len)
+    /* Drop the packet */
+    return ERR_OK;
+
 #if ETH_PAD_SIZE
   pbuf_header (p, -ETH_PAD_SIZE);	/* drop the padding word */
 #endif
 
-  LWIP_ASSERT ("p->next==0", p->next == 0);
   tried = 0;
   /* Send the data from the pbuf to the interface, one pbuf at a
      time. The size of the data in each pbuf is kept in the ->len
@@ -333,22 +349,22 @@ hurdethif_low_level_output (struct netif *netif, struct pbuf *p)
       tried++;
       err = device_write (ethif->ether_port, D_NOWAIT, 0,
 			  p->payload, p->len, &count);
-      if (err == EMACH_SEND_INVALID_DEST || err == EMIG_SERVER_DIED)
+      if (err)
 	{
-	  /* Device probably just died, try to reopen it.  */
-
 	  if (tried == 2)
 	    /* Too many tries, abort */
 	    break;
 
-	  hurdethif_device_close (netif);
-	  hurdethif_device_open (netif);
+	  if (err == EMACH_SEND_INVALID_DEST || err == EMIG_SERVER_DIED)
+	    {
+	      /* Device probably just died, try to reopen it.  */
+	      hurdethif_device_close (netif);
+	      hurdethif_device_open (netif);
+	    }
 	}
-      else
-	{
-	  LWIP_ASSERT ("err==0", err == 0);
-	  LWIP_ASSERT ("count == p->len", count == p->len);
-	}
+      else if (count != p->len)
+	/* Incomplete package sent, reattempt */
+	err = -1;
     }
   while (err);
 
@@ -518,7 +534,8 @@ hurdethif_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
       MACH_MSG_TYPE_PROTECTED_PAYLOAD)
     {
       struct port_info *pi = ports_lookup_payload (NULL,
-						   inp->msgh_protected_payload,
+						   inp->
+						   msgh_protected_payload,
 						   NULL);
       if (pi)
 	{
@@ -590,7 +607,9 @@ hurdethif_init (struct netif * netif)
 {
   hurdethif *ethif;
 
-  LWIP_ASSERT ("netif != NULL", (netif != NULL));
+  if (netif == NULL)
+    /* The user provided no interface */
+    return -1;
 
   ethif = mem_malloc (sizeof (hurdethif));
   if (ethif == NULL)
