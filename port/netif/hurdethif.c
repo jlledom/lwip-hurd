@@ -108,9 +108,9 @@ hurdethif_device_get_flags (struct netif *netif, uint16_t * flags)
       err = 0;
     }
   else if (err)
-    error (2, err, "%s: Cannot set hardware flags", ethif->devname);
-
-  *flags = status.flags;
+    error (0, err, "%s: Cannot get hardware flags", ethif->devname);
+  else
+    *flags = status.flags;
 
   return err;
 }
@@ -137,9 +137,9 @@ hurdethif_device_set_flags (struct netif *netif, uint16_t flags)
       err = 0;
     }
   else if (err)
-    error (2, err, "%s: Cannot set hardware flags", ethif->devname);
-
-  ethif->flags = flags;
+    error (0, err, "%s: Cannot set hardware flags", ethif->devname);
+  else
+    ethif->flags = flags;
 
   return err;
 }
@@ -148,7 +148,7 @@ hurdethif_device_set_flags (struct netif *netif, uint16_t flags)
 static err_t
 hurdethif_device_open (struct netif *netif)
 {
-  err_t err;
+  err_t err = ERR_OK;
   device_t master_device;
   hurdethif *ethif = netif_get_state (netif);
 
@@ -173,14 +173,16 @@ hurdethif_device_open (struct netif *netif)
 			 "eth", &ethif->ether_port);
       mach_port_deallocate (mach_task_self (), master_device);
       if (err)
-	error (2, err, "device_open on %s", ethif->devname);
-
-      err = device_set_filter (ethif->ether_port, ethif->readptname,
-			       MACH_MSG_TYPE_MAKE_SEND, 0,
-			       (filter_array_t) bpf_ether_filter,
-			       bpf_ether_filter_len);
-      if (err)
-	error (2, err, "device_set_filter on %s", ethif->devname);
+	error (0, err, "device_open on %s", ethif->devname);
+      else
+	{
+	  err = device_set_filter (ethif->ether_port, ethif->readptname,
+				   MACH_MSG_TYPE_MAKE_SEND, 0,
+				   (filter_array_t) bpf_ether_filter,
+				   bpf_ether_filter_len);
+	  if (err)
+	    error (0, err, "device_set_filter on %s", ethif->devname);
+	}
     }
   else
     {
@@ -190,26 +192,31 @@ hurdethif_device_open (struct netif *netif)
       if (err)
 	{
 	  error (0, file_errno, "file_name_lookup %s", ethif->devname);
-	  error (2, err, "and cannot get device master port");
+	  error (0, err, "and cannot get device master port");
 	}
-      err = device_open (master_device, D_WRITE | D_READ,
-			 ethif->devname, &ethif->ether_port);
-      mach_port_deallocate (mach_task_self (), master_device);
-      if (err)
+      else
 	{
-	  error (0, file_errno, "file_name_lookup %s", ethif->devname);
-	  error (2, err, "device_open(%s)", ethif->devname);
+	  err = device_open (master_device, D_WRITE | D_READ,
+			     ethif->devname, &ethif->ether_port);
+	  mach_port_deallocate (mach_task_self (), master_device);
+	  if (err)
+	    {
+	      error (0, file_errno, "file_name_lookup %s", ethif->devname);
+	      error (0, err, "device_open(%s)", ethif->devname);
+	    }
+	  else
+	    {
+	      err = device_set_filter (ethif->ether_port, ethif->readptname,
+				       MACH_MSG_TYPE_MAKE_SEND, 0,
+				       (filter_array_t) ether_filter,
+				       ether_filter_len);
+	      if (err)
+		error (0, err, "device_set_filter on %s", ethif->devname);
+	    }
 	}
-
-      err = device_set_filter (ethif->ether_port, ethif->readptname,
-			       MACH_MSG_TYPE_MAKE_SEND, 0,
-			       (filter_array_t) ether_filter,
-			       ether_filter_len);
-      if (err)
-	error (2, err, "device_set_filter on %s", ethif->devname);
     }
 
-  return ERR_OK;
+  return err;
 }
 
 /* Destroy our link to the device */
@@ -247,24 +254,27 @@ hurdethif_low_level_init (struct netif *netif)
   /* et the MAC address */
   ether_port = netif_get_state (netif)->ether_port;
   err = device_get_status (ether_port, NET_ADDRESS, net_address, &count);
-  LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
-	       count * sizeof (int) >= ETHARP_HWADDR_LEN);
   if (err)
-    error (2, err, "%s: Cannot get hardware Ethernet address",
+    error (0, err, "%s: Cannot get hardware Ethernet address",
 	   netif_get_state (netif)->devname);
-  net_address[0] = ntohl (net_address[0]);
-  net_address[1] = ntohl (net_address[1]);
+  else
+    {
+      LWIP_ASSERT ("count * sizeof (int) >= ETHARP_HWADDR_LEN",
+		   count * sizeof (int) >= ETHARP_HWADDR_LEN);
+      net_address[0] = ntohl (net_address[0]);
+      net_address[1] = ntohl (net_address[1]);
 
-  /* set MAC hardware address length */
-  netif->hwaddr_len = ETHARP_HWADDR_LEN;
+      /* set MAC hardware address length */
+      netif->hwaddr_len = ETHARP_HWADDR_LEN;
 
-  /* set MAC hardware address */
-  netif->hwaddr[0] = GET_HWADDR_BYTE (net_address, 0);
-  netif->hwaddr[1] = GET_HWADDR_BYTE (net_address, 1);
-  netif->hwaddr[2] = GET_HWADDR_BYTE (net_address, 2);
-  netif->hwaddr[3] = GET_HWADDR_BYTE (net_address, 3);
-  netif->hwaddr[4] = GET_HWADDR_BYTE (net_address, 4);
-  netif->hwaddr[5] = GET_HWADDR_BYTE (net_address, 5);
+      /* set MAC hardware address */
+      netif->hwaddr[0] = GET_HWADDR_BYTE (net_address, 0);
+      netif->hwaddr[1] = GET_HWADDR_BYTE (net_address, 1);
+      netif->hwaddr[2] = GET_HWADDR_BYTE (net_address, 2);
+      netif->hwaddr[3] = GET_HWADDR_BYTE (net_address, 3);
+      netif->hwaddr[4] = GET_HWADDR_BYTE (net_address, 4);
+      netif->hwaddr[5] = GET_HWADDR_BYTE (net_address, 5);
+    }
 
   /* maximum transfer unit */
   netif->mtu = TCP_MSS + 0x28;
