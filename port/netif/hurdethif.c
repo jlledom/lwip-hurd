@@ -125,6 +125,11 @@ hurdethif_device_set_flags (struct netif *netif, uint16_t flags)
 
   sflags = flags;
   ethif = netif_get_state (netif);
+
+  if (ethif->ether_port == MACH_PORT_NULL)
+    /* The device is closed */
+    return 0;
+
   err = device_set_status (ethif->ether_port, NET_FLAGS, &sflags, 1);
   if (err == D_INVALID_OPERATION)
     {
@@ -236,6 +241,12 @@ hurdethif_device_close (struct netif *netif)
 {
   hurdethif *ethif = netif_get_state (netif);
 
+  if (ethif->ether_port == MACH_PORT_NULL)
+    {
+      error (0, 0, "Already closed: %s", ethif->devname);
+      return -1;
+    }
+
   mach_port_deallocate (mach_task_self (), ethif->readptname);
   ethif->readptname = MACH_PORT_NULL;
   ports_destroy_right (ethif->readpt);
@@ -294,7 +305,8 @@ hurdethif_low_level_init (struct netif *netif)
 
   /* Enable Ethernet multicasting */
   hurdethif_device_get_flags (netif, &netif_get_state (netif)->flags);
-  netif_get_state (netif)->flags |= IFF_BROADCAST | IFF_ALLMULTI;
+  netif_get_state (netif)->flags |=
+    IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_ALLMULTI;
   hurdethif_device_set_flags (netif, netif_get_state (netif)->flags);
 
   /* device capabilities */
@@ -534,8 +546,7 @@ hurdethif_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
       MACH_MSG_TYPE_PROTECTED_PAYLOAD)
     {
       struct port_info *pi = ports_lookup_payload (NULL,
-						   inp->
-						   msgh_protected_payload,
+						   inp->msgh_protected_payload,
 						   NULL);
       if (pi)
 	{
@@ -587,8 +598,8 @@ hurdethif_update_mtu (struct netif * netif, uint32_t mtu)
 error_t
 hurdethif_terminate (struct netif * netif)
 {
-  /* Free the interface and its hook */
-  mem_free (netif_get_state (netif)->devname);
+  /* Free the hook */
+  free (netif_get_state (netif)->devname);
   mem_free (netif_get_state (netif));
 
   return 0;
@@ -607,10 +618,10 @@ hurdethif_init (struct netif * netif)
 {
   hurdethif *ethif;
 
-  if (netif == NULL)
-    /* The user provided no interface */
-    return -1;
-
+  /*
+   * Replace the hook by a new one with the proper size.
+   * The old one is in the stack and will be removed soon.
+   */
   ethif = mem_malloc (sizeof (hurdethif));
   if (ethif == NULL)
     {
@@ -618,29 +629,7 @@ hurdethif_init (struct netif * netif)
       return ERR_MEM;
     }
   memset (ethif, 0, sizeof (hurdethif));
-
-  ethif->devname = mem_malloc (strlen (netif->state) + 1);
-  if (ethif->devname == NULL)
-    {
-      LWIP_DEBUGF (NETIF_DEBUG, ("hurdethif_init: out of memory\n"));
-      return ERR_MEM;
-    }
-  memset (ethif->devname, 0, strlen (netif->state) + 1);
-
-#if LWIP_NETIF_HOSTNAME
-  /* Initialize interface hostname */
-  netif->hostname = "lwip";
-#endif /* LWIP_NETIF_HOSTNAME */
-
-  /*
-   * Initialize the snmp variables and counters inside the struct netif.
-   * The last argument should be replaced with your link speed, in units
-   * of bits per second.
-   */
-  MIB2_INIT_NETIF (netif, snmp_ifType_ethernet_csmacd,
-		   LINK_SPEED_OF_YOUR_NETIF_IN_BPS);
-
-  strncpy (ethif->devname, netif->state, strlen (netif->state));
+  memcpy (ethif, netif_get_state (netif), sizeof (struct ifcommon));
   netif->state = ethif;
 
   ethif->type = ARPHRD_ETHER;
@@ -655,6 +644,8 @@ hurdethif_init (struct netif * netif)
 #endif /* LWIP_IPV6 */
   netif->linkoutput = hurdethif_low_level_output;
 
+  ethif->open = hurdethif_device_open;
+  ethif->close = hurdethif_device_close;
   ethif->terminate = hurdethif_terminate;
   ethif->update_mtu = hurdethif_update_mtu;
   ethif->change_flags = hurdethif_device_set_flags;

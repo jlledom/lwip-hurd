@@ -38,10 +38,9 @@
  * Detect the proper module for the given device name
  * and returns its init callback
  */
-static module_init_t
-get_module_init (char *name)
+static error_t
+create_netif_state (char *name, struct ifcommon *ifc)
 {
-  module_init_t ret;
   char *base_name;
 
   base_name = strrchr (name, '/');
@@ -51,11 +50,19 @@ get_module_init (char *name)
     base_name = name;
 
   if (strncmp (base_name, "tun", 3) == 0)
-    ret = hurdtunif_init;
+    ifc->init = hurdtunif_init;
   else
-    ret = hurdethif_init;
+    ifc->init = hurdethif_init;
 
-  return ret;
+  /* Freed in the module terminate callback */
+  ifc->devname = malloc (strlen (name) + 1);
+  if (ifc->devname)
+    {
+      memset (ifc->devname, 0, strlen (name) + 1);
+      strncpy (ifc->devname, name, strlen (name));
+    }
+
+  return errno;
 }
 
 /* Some checks for IPv4 configurations */
@@ -98,19 +105,13 @@ ipv4config_is_valid (uint32_t addr, uint32_t netmask,
 static void
 init_loopback ()
 {
-  struct ifcommon *loif;
+  struct ifcommon ifc;
 
-  /*
-   * This pointer is freed at hurdloopif_terminate(),
-   * but for now it is never called.
-   */
-  loif = malloc (sizeof (struct ifcommon));
-  if (!loif)
-    error (2, errno, "init_loopback: out of memory");
+  memset (&ifc, 0, sizeof (struct ifcommon));
+  ifc.init = hurdloopif_init;
+  netif_list->state = &ifc;
 
-  netif_list->state = loif;
-
-  hurdloopif_init (netif_list);
+  if_init (netif_list);
 }
 
 /* Remove the existing interfaces, but the loopback one */
@@ -128,10 +129,8 @@ remove_ifs ()
 	  netif = netif->next;
 	  continue;
 	}
-
+      if_terminate (netif);
       netifapi_netif_remove (netif);
-
-      netif_get_state (netif)->terminate (netif);
       free (netif);
 
       netif = netif_list;
@@ -148,6 +147,7 @@ init_ifs (void *arg)
   struct parse_interface *in;
   struct parse_hook *ifs;
   struct netif *netif;
+  struct ifcommon ifc;
   int8_t ipv6_addr_idx;
   ip6_addr_t *address6;
   int i;
@@ -178,6 +178,9 @@ init_ifs (void *arg)
 
       netif = malloc (sizeof (struct netif));
       memset (netif, 0, sizeof (struct netif));
+      memset (&ifc, 0, sizeof (struct ifcommon));
+
+      create_netif_state (in->dev_name, &ifc);
 
       /*
        * Create a new interface and configre IPv4.
@@ -185,8 +188,8 @@ init_ifs (void *arg)
        * Fifth parameter (in->name) is a hook.
        */
       err = netifapi_netif_add
-	(netif, &in->address, &in->netmask, &in->gateway, in->dev_name,
-	 get_module_init (in->dev_name), tcpip_input);
+	(netif, &in->address, &in->netmask, &in->gateway, &ifc, if_init,
+	 tcpip_input);
       if (err)
 	{
 	  /* The interface failed to init */

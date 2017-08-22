@@ -105,7 +105,7 @@ hurdtunif_terminate (struct netif * netif)
   pthread_cond_destroy (&tunif->select);
   pthread_mutex_destroy (&tunif->lock);
 
-  /* Free the interface and its hook */
+  /* Free the hook */
   free (netif_get_state (netif)->devname);
   mem_free (netif_get_state (netif));
 
@@ -169,8 +169,12 @@ hurdtunif_init (struct netif * netif)
 {
   error_t err = 0;
   struct hurdtunif *tunif;
-  char *base_name, *name = netif->state;
+  char *base_name, *name = netif_get_state (netif)->devname;
 
+  /*
+   * Replace the hook by a new one with the proper size.
+   * The old one is in the stack and will be removed soon.
+   */
   tunif = mem_malloc (sizeof (struct hurdtunif));
   if (tunif == NULL)
     {
@@ -178,6 +182,8 @@ hurdtunif_init (struct netif * netif)
       return ERR_MEM;
     }
   memset (tunif, 0, sizeof (struct hurdtunif));
+  memcpy (tunif, netif_get_state (netif), sizeof (struct ifcommon));
+  netif->state = tunif;
 
   base_name = strrchr (name, '/');
   if (base_name)
@@ -193,7 +199,6 @@ hurdtunif_init (struct netif * netif)
     /* Setting up the translator at /dev/tunX.  */
     asprintf (&tunif->comm.devname, "/dev/%s", base_name);
 
-  netif->state = tunif;
   tunif->comm.type = ARPHRD_TUNNEL;
 
   netif->mtu = 1500;
@@ -205,6 +210,8 @@ hurdtunif_init (struct netif * netif)
   netif->flags = NETIF_FLAG_LINK_UP;
 
   netif->output = hurdtunif_output;
+  tunif->comm.open = 0;
+  tunif->comm.close = 0;
   tunif->comm.terminate = hurdtunif_terminate;
   tunif->comm.update_mtu = hurdtunif_update_mtu;
   tunif->comm.change_flags = hurdtunif_device_set_flags;

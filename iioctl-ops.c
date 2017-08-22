@@ -188,7 +188,7 @@ lwip_S_iioctl_siocsifflags (struct sock_user * user,
     err = ENODEV;
   else
     {
-      err = netif_get_state (netif)->change_flags (netif, flags);
+      err = if_change_flags (netif, flags);
     }
 
   return err;

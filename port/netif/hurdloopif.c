@@ -24,6 +24,7 @@
 
 #include <net/if.h>
 #include <net/if_arp.h>
+#include <string.h>
 
 #include <lwip-util.h>
 
@@ -62,7 +63,8 @@ error_t
 hurdloopif_terminate (struct netif * netif)
 {
   /* Free the hook */
-  mem_free (netif->state);
+  free (netif_get_state (netif)->devname);
+  mem_free (netif_get_state (netif));
 
   return 0;
 }
@@ -79,7 +81,19 @@ hurdloopif_init (struct netif * netif)
   error_t err = 0;
   hurdloopif *loopif;
 
-  loopif = netif_get_state (netif);
+  /*
+   * Replace the hook by a new one with the proper size.
+   * The old one is in the stack and will be removed soon.
+   */
+  loopif = mem_malloc (sizeof (hurdloopif));
+  if (loopif == NULL)
+    {
+      LWIP_DEBUGF (NETIF_DEBUG, ("hurdloopif_init: out of memory\n"));
+      return ERR_MEM;
+    }
+  memset (loopif, 0, sizeof (hurdloopif));
+  memcpy (loopif, netif_get_state (netif), sizeof (struct ifcommon));
+  netif->state = loopif;
 
   loopif->devname = LOOP_DEV_NAME;
   loopif->type = ARPHRD_LOOPBACK;
@@ -88,6 +102,8 @@ hurdloopif_init (struct netif * netif)
 
   hurdloopif_device_set_flags (netif, IFF_UP | IFF_RUNNING | IFF_LOOPBACK);
 
+  loopif->open = 0;
+  loopif->close = 0;
   loopif->terminate = hurdloopif_terminate;
   loopif->update_mtu = hurdloopif_update_mtu;
   loopif->change_flags = hurdloopif_device_set_flags;
