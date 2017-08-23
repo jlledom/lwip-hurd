@@ -26,6 +26,7 @@
 
 #include <lwip/netifapi.h>
 
+/* Open the device and set the interface up */
 static error_t
 if_open (struct netif *netif)
 {
@@ -44,6 +45,7 @@ if_open (struct netif *netif)
   return err;
 }
 
+/* Close the device and set the interface down */
 static error_t
 if_close (struct netif *netif)
 {
@@ -62,6 +64,12 @@ if_close (struct netif *netif)
   return err;
 }
 
+/*
+ * Common initialization callback for all kinds of devices.
+ *
+ * This function doesn't assume there's a device nor tries to open it.
+ * If a device is present, it must be opened from the ifc->init() callback.
+ */
 error_t
 if_init (struct netif * netif)
 {
@@ -74,6 +82,7 @@ if_init (struct netif * netif)
   return ifc->init (netif);
 }
 
+/* Tries to close the device and frees allocated resources */
 error_t
 if_terminate (struct netif * netif)
 {
@@ -91,6 +100,11 @@ if_terminate (struct netif * netif)
   return ifc->terminate (netif);
 }
 
+/*
+ * Change device flags.
+ *
+ * If IFF_UP changes, it opens/closes the device accordingly.
+ */
 error_t
 if_change_flags (struct netif * netif, uint16_t flags)
 {
