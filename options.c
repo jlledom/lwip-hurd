@@ -31,6 +31,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/if_arp.h>
+#include <error.h>
 
 #include <lwip/netif.h>
 #include <lwip/tcpip.h>
@@ -216,14 +217,14 @@ parse_opt (int opt, char *arg, struct argp_state *state)
 
 	      if (addr6_prefix_len != 64)
 		{
-		  fprintf (stderr,
+		  error (0, 0,
 			   "The only supported value for the prefix-length"
 			   " is /64. Defaulting to %s/64.\n", arg);
 		}
 	    }
 	  else
 	    {
-	      fprintf (stderr, "No prefix-length given, "
+	      error (0, 0, "No prefix-length given, "
 		       "defaulting to %s/64.\n", arg);
 	    }
 

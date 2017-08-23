@@ -73,14 +73,14 @@ ipv4config_is_valid (uint32_t addr, uint32_t netmask,
   /* Check whether the user provided a valid netmask */
   if (netmask != INADDR_NONE && !ip4_addr_netmask_valid (netmask))
     {
-      fprintf (stderr, "Error: Invalid network mask.\n");
+      error (0, 0, "Error: Invalid network mask.\n");
       return 0;
     }
 
   /* The given gateway, if any, must be in the same network as the address */
   if (gateway != INADDR_NONE && (gateway & netmask) != (addr & netmask))
     {
-      fprintf (stderr,
+      error (0, 0,
 	       "Error: the gateway is not in the same network as the address.\n");
       return 0;
     }
@@ -93,7 +93,7 @@ ipv4config_is_valid (uint32_t addr, uint32_t netmask,
   if (broadcast != INADDR_NONE
       && netmask != INADDR_NONE && broadcast != (addr | ~netmask))
     {
-      fprintf (stderr,
+      error (0, 0,
 	       "Error: the broadcast address doesn't match the network mask.\n");
       return 0;
     }
@@ -218,7 +218,7 @@ init_ifs (void *arg)
 		netif_ip6_addr_set_state (netif, ipv6_addr_idx,
 					  IP6_ADDR_TENTATIVE);
 	      else
-		fprintf (stderr,
+		error (0, 0,
 			 "No more free slots for new IPv6 addresses\n");
 	    }
 	}

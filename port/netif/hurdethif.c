@@ -103,7 +103,7 @@ hurdethif_device_get_flags (struct netif *netif, uint16_t * flags)
        * eth-multiplexer doesn't support setting flags.
        * We must ignore D_INVALID_OPERATION.
        */
-      fprintf (stderr, "%s: hardware doesn't support getting flags.\n",
+      error (0, 0, "%s: hardware doesn't support getting flags.\n",
 	       ethif->devname);
       err = 0;
     }
@@ -137,7 +137,7 @@ hurdethif_device_set_flags (struct netif *netif, uint16_t flags)
        * eth-multiplexer doesn't support setting flags.
        * We must ignore D_INVALID_OPERATION.
        */
-      fprintf (stderr, "%s: hardware doesn't support setting flags.\n",
+      error (0, 0, "%s: hardware doesn't support setting flags.\n",
 	       ethif->devname);
       err = 0;
     }
