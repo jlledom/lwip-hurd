@@ -20,6 +20,18 @@ makemode	= server
 
 PORTDIR = $(srcdir)/port
 
+SRCS =
+IFSRCS =
+MIGSRCS =
+OBJS =
+
+# If we have a configured tree, include the configuration so that we
+# can conditionally build translators.
+ifneq (,$(wildcard ../config.make))
+ include ../config.make
+endif
+
+ifeq ($(HAVE_LIBLWIP), yes)
 SRCS		= main.c io-ops.c socket-ops.c pfinet-ops.c iioctl-ops.c port-objs.c \
 						options.c lwip-util.c
 IFSRCS	= ifcommon.c hurdethif.c hurdloopif.c hurdtunif.c
@@ -27,17 +39,21 @@ MIGSRCS		= ioServer.c socketServer.c pfinetServer.c iioctlServer.c
 OBJS		= $(patsubst %.S,%.o,$(patsubst %.c,%.o,\
 			$(SRCS) $(IFSRCS) $(MIGSRCS)))
 
-HURDLIBS= trivfs fshelp ports ihash shouldbeinlibc iohelp
-LDLIBS = -lpthread -llwip
+# cpp doesn't automatically make dependencies for -imacros dependencies. argh.
+lwip_io_S.h ioServer.c lwip_socket_S.h socketServer.c: mig-mutate.h
 
 target = lwip
+endif
+
+HURDLIBS= trivfs fshelp ports ihash shouldbeinlibc iohelp
+LDLIBS = -lpthread $(liblwip_LIBS)
 
 include ../Makeconf
 
 vpath %.c $(PORTDIR) \
 		$(PORTDIR)/netif
 
-CFLAGS += -I$(PORTDIR)/include -I$(includedir)/lwip
+CFLAGS += -I$(PORTDIR)/include $(liblwip_CFLAGS)
 
 CPPFLAGS += -imacros $(srcdir)/config.h
 MIGCOMSFLAGS += -prefix lwip_
@@ -46,6 +62,4 @@ io-MIGSFLAGS = -imacros $(srcdir)/mig-mutate.h
 socket-MIGSFLAGS = -imacros $(srcdir)/mig-mutate.h
 iioctl-MIGSFLAGS = -imacros $(srcdir)/mig-mutate.h
 
-# cpp doesn't automatically make dependencies for -imacros dependencies. argh.
-lwip_io_S.h ioServer.c lwip_socket_S.h socketServer.c: mig-mutate.h
 $(OBJS): config.h
