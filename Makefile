@@ -28,7 +28,7 @@ OBJS		= $(patsubst %.S,%.o,$(patsubst %.c,%.o,\
 			$(SRCS) $(IFSRCS) $(MIGSRCS)))
 
 HURDLIBS= trivfs fshelp ports ihash shouldbeinlibc iohelp
-LDLIBS = -lpthread -llwip
+LDLIBS = -lpthread $(liblwip_LIBS)
 
 target = lwip
 
@@ -37,7 +37,7 @@ include ../Makeconf
 vpath %.c $(PORTDIR) \
 		$(PORTDIR)/netif
 
-CFLAGS += -I$(PORTDIR)/include -I$(includedir)/lwip
+CFLAGS += -I$(PORTDIR)/include $(liblwip_CFLAGS)
 
 CPPFLAGS += -imacros $(srcdir)/config.h
 MIGCOMSFLAGS += -prefix lwip_
