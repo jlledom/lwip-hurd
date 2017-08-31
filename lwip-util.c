@@ -52,7 +52,7 @@ create_netif_state (char *name, struct ifcommon *ifc)
   if (strncmp (base_name, "tun", 3) == 0)
     ifc->init = hurdtunif_init;
   else
-    ifc->init = hurdethif_init;
+    ifc->init = hurdethif_device_init;
 
   /* Freed in the module terminate callback */
   ifc->devname = malloc (strlen (name) + 1);
@@ -81,7 +81,7 @@ ipv4config_is_valid (uint32_t addr, uint32_t netmask,
   if (gateway != INADDR_NONE && (gateway & netmask) != (addr & netmask))
     {
       error (0, 0,
-	       "Error: the gateway is not in the same network as the address.\n");
+	     "Error: the gateway is not in the same network as the address.\n");
       return 0;
     }
 
@@ -94,7 +94,7 @@ ipv4config_is_valid (uint32_t addr, uint32_t netmask,
       && netmask != INADDR_NONE && broadcast != (addr | ~netmask))
     {
       error (0, 0,
-	       "Error: the broadcast address doesn't match the network mask.\n");
+	     "Error: the broadcast address doesn't match the network mask.\n");
       return 0;
     }
 
@@ -218,8 +218,7 @@ init_ifs (void *arg)
 		netif_ip6_addr_set_state (netif, ipv6_addr_idx,
 					  IP6_ADDR_TENTATIVE);
 	      else
-		error (0, 0,
-			 "No more free slots for new IPv6 addresses\n");
+		error (0, 0, "No more free slots for new IPv6 addresses\n");
 	    }
 	}
 

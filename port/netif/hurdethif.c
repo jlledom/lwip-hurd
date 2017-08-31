@@ -104,7 +104,7 @@ hurdethif_device_get_flags (struct netif *netif, uint16_t * flags)
        * We must ignore D_INVALID_OPERATION.
        */
       error (0, 0, "%s: hardware doesn't support getting flags.\n",
-	       ethif->devname);
+	     ethif->devname);
       err = 0;
     }
   else if (err)
@@ -138,7 +138,7 @@ hurdethif_device_set_flags (struct netif *netif, uint16_t flags)
        * We must ignore D_INVALID_OPERATION.
        */
       error (0, 0, "%s: hardware doesn't support setting flags.\n",
-	       ethif->devname);
+	     ethif->devname);
       err = 0;
     }
   else if (err)
@@ -259,85 +259,10 @@ hurdethif_device_close (struct netif *netif)
 }
 
 /*
- * In this function, the hardware should be initialized.
- * Called from hurdethif_init().
+ * Called from lwip when outgoing data is ready
  */
 static error_t
-hurdethif_low_level_init (struct netif *netif)
-{
-  error_t err;
-  size_t count = 2;
-  int net_address[2];
-  device_t ether_port;
-
-  err = hurdethif_device_open (netif);
-  if (err)
-    return err;
-
-  /* et the MAC address */
-  ether_port = netif_get_state (netif)->ether_port;
-  err = device_get_status (ether_port, NET_ADDRESS, net_address, &count);
-  if (err)
-    error (0, err, "%s: Cannot get hardware Ethernet address",
-	   netif_get_state (netif)->devname);
-  else if (count * sizeof (int) >= ETHARP_HWADDR_LEN)
-    {
-      net_address[0] = ntohl (net_address[0]);
-      net_address[1] = ntohl (net_address[1]);
-
-      /* set MAC hardware address length */
-      netif->hwaddr_len = ETHARP_HWADDR_LEN;
-
-      /* set MAC hardware address */
-      netif->hwaddr[0] = GET_HWADDR_BYTE (net_address, 0);
-      netif->hwaddr[1] = GET_HWADDR_BYTE (net_address, 1);
-      netif->hwaddr[2] = GET_HWADDR_BYTE (net_address, 2);
-      netif->hwaddr[3] = GET_HWADDR_BYTE (net_address, 3);
-      netif->hwaddr[4] = GET_HWADDR_BYTE (net_address, 4);
-      netif->hwaddr[5] = GET_HWADDR_BYTE (net_address, 5);
-    }
-  else
-    error (0, 0, "%s: Invalid Ethernet address",
-	   netif_get_state (netif)->devname);
-
-  /* maximum transfer unit */
-  netif->mtu = TCP_MSS + 0x28;
-
-  /* Enable Ethernet multicasting */
-  hurdethif_device_get_flags (netif, &netif_get_state (netif)->flags);
-  netif_get_state (netif)->flags |=
-    IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_ALLMULTI;
-  hurdethif_device_set_flags (netif, netif_get_state (netif)->flags);
-
-  /* device capabilities */
-  /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
-  netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP
-    | NETIF_FLAG_IGMP | NETIF_FLAG_MLD6;
-
-#if LWIP_IPV6 && LWIP_IPV6_MLD
-  /*
-   * For hardware/netifs that implement MAC filtering.
-   * All-nodes link-local is handled by default, so we must let the hardware
-   * know to allow multicast packets in.
-   * Should set mld_mac_filter previously. */
-  if (netif->mld_mac_filter != NULL)
-    {
-      ip6_addr_t ip6_allnodes_ll;
-      ip6_addr_set_allnodes_linklocal (&ip6_allnodes_ll);
-      netif->mld_mac_filter (netif, &ip6_allnodes_ll, NETIF_ADD_MAC_FILTER);
-    }
-#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
-
-  return ERR_OK;
-}
-
-/*
- * This function should do the actual transmission of the packet. The packet is
- * contained in the pbuf that is passed to the function. This pbuf
- * might be chained.
- */
-static error_t
-hurdethif_low_level_output (struct netif *netif, struct pbuf *p)
+hurdethif_output (struct netif *netif, struct pbuf *p)
 {
   error_t err;
   hurdethif *ethif = netif_get_state (netif);
@@ -347,10 +272,6 @@ hurdethif_low_level_output (struct netif *netif, struct pbuf *p)
   if (p->tot_len != p->len)
     /* Drop the packet */
     return ERR_OK;
-
-#if ETH_PAD_SIZE
-  pbuf_header (p, -ETH_PAD_SIZE);	/* drop the padding word */
-#endif
 
   tried = 0;
   /* Send the data from the pbuf to the interface, one pbuf at a
@@ -380,73 +301,39 @@ hurdethif_low_level_output (struct netif *netif, struct pbuf *p)
     }
   while (err);
 
-  MIB2_STATS_NETIF_ADD (netif, ifoutoctets, p->tot_len);
-  if (((u8_t *) p->payload)[0] & 1)
-    {
-      /* broadcast or multicast packet */
-      MIB2_STATS_NETIF_INC (netif, ifoutnucastpkts);
-    }
-  else
-    {
-      /* unicast packet */
-      MIB2_STATS_NETIF_INC (netif, ifoutucastpkts);
-    }
-  /* increase ifoutdiscards or ifouterrors on error */
-
-#if ETH_PAD_SIZE
-  pbuf_header (p, ETH_PAD_SIZE);	/* reclaim the padding word */
-#endif
-
-  LINK_STATS_INC (link.xmit);
-
   return ERR_OK;
 }
 
 /*
- * Should allocate a pbuf and transfer the bytes of the incoming
- * packet from the interface into the pbuf.
+ * Called from the demuxer when incoming data is ready
  */
-static struct pbuf *
-hurdethif_low_level_input (struct netif *netif, struct net_rcv_msg *msg)
+void
+hurdethif_input (struct netif *netif, struct net_rcv_msg *msg)
 {
   struct pbuf *p, *q;
   u16_t len;
   u16_t off;
   u16_t next_read;
 
-  /* Obtain the size of the packet and put it into the "len"
-     variable. */
+  /* Get the size of the whole packet */
   len = PBUF_LINK_HLEN
     + msg->packet_type.msgt_number - sizeof (struct packet_header);
 
-#if ETH_PAD_SIZE
-  len += ETH_PAD_SIZE;		/* allow room for Ethernet padding */
-#endif
-
-  /* We allocate a pbuf chain of pbufs from the pool. */
+  /* Allocate an empty pbuf chain for the data */
   p = pbuf_alloc (PBUF_RAW, len, PBUF_POOL);
 
-  if (p != NULL)
+  if (p)
     {
-
-#if ETH_PAD_SIZE
-      pbuf_header (p, -ETH_PAD_SIZE);	/* drop the padding word */
-#endif
-
-      /* We iterate over the pbuf chain until we have read the entire
-       * packet into the pbuf. */
+      /*
+       * Iterate to fill the pbuf chain.
+       * 
+       * First read the Ethernet header from msg->header. Then read the
+       * payload from msg->packet
+       */
       q = p;
       off = 0;
       do
 	{
-	  /* Read enough bytes to fill this pbuf in the chain. The
-	   * available data in the pbuf is given by the q->len
-	   * variable.
-	   * This does not necessarily have to be a memcpy, you can also preallocate
-	   * pbufs for a DMA-enabled MAC and after receiving truncate it to the
-	   * actually received size. In this case, ensure the tot_len member of the
-	   * pbuf is the sum of the chained pbuf len members.
-	   */
 	  if (off < PBUF_LINK_HLEN)
 	    {
 	      /* We still haven't ended copying the header */
@@ -467,6 +354,7 @@ hurdethif_low_level_input (struct netif *netif, struct net_rcv_msg *msg)
 
 	  off += q->len;
 
+	  /* q->tot_len == q->len means this was the last pbuf in the chain */
 	  if (q->tot_len == q->len)
 	    break;
 	  else
@@ -474,54 +362,7 @@ hurdethif_low_level_input (struct netif *netif, struct net_rcv_msg *msg)
 	}
       while (1);
 
-      MIB2_STATS_NETIF_ADD (netif, ifinoctets, p->tot_len);
-      if (((u8_t *) p->payload)[0] & 1)
-	{
-	  /* broadcast or multicast packet */
-	  MIB2_STATS_NETIF_INC (netif, ifinnucastpkts);
-	}
-      else
-	{
-	  /* unicast packet */
-	  MIB2_STATS_NETIF_INC (netif, ifinucastpkts);
-	}
-#if ETH_PAD_SIZE
-      pbuf_header (p, ETH_PAD_SIZE);	/* reclaim the padding word */
-#endif
-
-      LINK_STATS_INC (link.recv);
-    }
-  else
-    {
-      LINK_STATS_INC (link.memerr);
-      LINK_STATS_INC (link.drop);
-      MIB2_STATS_NETIF_INC (netif, ifindiscards);
-    }
-
-  return p;
-}
-
-/*
- * This function should be called when a packet is ready to be read
- * from the interface. It uses the function low_level_input() that
- * should handle the actual reception of bytes from the network
- * interface. Then the type of the received packet is determined and
- * the appropriate input function is called.
- */
-void
-hurdethif_input (struct netif *netif, struct net_rcv_msg *msg)
-{
-  struct pbuf *p;
-
-  /* move received packet into a new pbuf */
-  p = hurdethif_low_level_input (netif, msg);
-  /* if no packet could be read, silently ignore this */
-  if (p != NULL)
-    {
-      /*
-       * pass all packets to ethernet_input, which decides
-       * what packets it supports
-       */
+      /* Pass the pbuf chain to he input function */
       if (netif->input (p, netif) != ERR_OK)
 	{
 	  LWIP_DEBUGF (NETIF_DEBUG, ("hurdethif_input: IP input error\n"));
@@ -579,7 +420,7 @@ hurdethif_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
  * Update the interface's MTU and the BPF filter
  */
 error_t
-hurdethif_update_mtu (struct netif * netif, uint32_t mtu)
+hurdethif_device_update_mtu (struct netif * netif, uint32_t mtu)
 {
   error_t err = 0;
 
@@ -595,35 +436,36 @@ hurdethif_update_mtu (struct netif * netif, uint32_t mtu)
  *
  * Returns 0 on success.
  */
-error_t
-hurdethif_terminate (struct netif * netif)
+static error_t
+hurdethif_device_terminate (struct netif * netif)
 {
   /* Free the hook */
   free (netif_get_state (netif)->devname);
-  mem_free (netif_get_state (netif));
+  free (netif_get_state (netif));
 
   return 0;
 }
 
 /*
- * Should be called at the beginning of the program to set up the
- * network interface. It calls the function low_level_init() to do the
- * actual setup of the hardware.
- *
- * This function should be passed as a parameter to netif_add() so it may be
- * called many times.
+ * Initializes a single device.
+ * 
+ * The module must be initialized before calling this function.
  */
 error_t
-hurdethif_init (struct netif * netif)
+hurdethif_device_init (struct netif * netif)
 {
+  error_t err;
+  size_t count = 2;
+  int net_address[2];
+  device_t ether_port;
   hurdethif *ethif;
 
   /*
    * Replace the hook by a new one with the proper size.
    * The old one is in the stack and will be removed soon.
    */
-  ethif = mem_malloc (sizeof (hurdethif));
-  if (ethif == NULL)
+  ethif = malloc (sizeof (hurdethif));
+  if (!ethif)
     {
       LWIP_DEBUGF (NETIF_DEBUG, ("hurdethif_init: out of memory\n"));
       return ERR_MEM;
@@ -632,26 +474,70 @@ hurdethif_init (struct netif * netif)
   memcpy (ethif, netif_get_state (netif), sizeof (struct ifcommon));
   netif->state = ethif;
 
+  /* Interface type */
   ethif->type = ARPHRD_ETHER;
 
-  /* We directly use etharp_output() here to save a function call.
-   * You can instead declare your own function an call etharp_output()
-   * from it if you have to do some checks before sending (e.g. if link
-   * is available...) */
+  /* Set callbacks */
   netif->output = etharp_output;
-#if LWIP_IPV6
   netif->output_ip6 = ethip6_output;
-#endif /* LWIP_IPV6 */
-  netif->linkoutput = hurdethif_low_level_output;
+  netif->linkoutput = hurdethif_output;
 
   ethif->open = hurdethif_device_open;
   ethif->close = hurdethif_device_close;
-  ethif->terminate = hurdethif_terminate;
-  ethif->update_mtu = hurdethif_update_mtu;
+  ethif->terminate = hurdethif_device_terminate;
+  ethif->update_mtu = hurdethif_device_update_mtu;
   ethif->change_flags = hurdethif_device_set_flags;
 
-  /* initialize the hardware */
-  return hurdethif_low_level_init (netif);
+  /* ---- Hardware initialization ---- */
+
+  /* We need the device to be opened to configure it */
+  err = hurdethif_device_open (netif);
+  if (err)
+    return err;
+
+  /* Get the MAC address */
+  ether_port = netif_get_state (netif)->ether_port;
+  err = device_get_status (ether_port, NET_ADDRESS, net_address, &count);
+  if (err)
+    error (0, err, "%s: Cannot get hardware Ethernet address",
+	   netif_get_state (netif)->devname);
+  else if (count * sizeof (int) >= ETHARP_HWADDR_LEN)
+    {
+      net_address[0] = ntohl (net_address[0]);
+      net_address[1] = ntohl (net_address[1]);
+
+      /* Set MAC hardware address length */
+      netif->hwaddr_len = ETHARP_HWADDR_LEN;
+
+      /* Set MAC hardware address */
+      netif->hwaddr[0] = GET_HWADDR_BYTE (net_address, 0);
+      netif->hwaddr[1] = GET_HWADDR_BYTE (net_address, 1);
+      netif->hwaddr[2] = GET_HWADDR_BYTE (net_address, 2);
+      netif->hwaddr[3] = GET_HWADDR_BYTE (net_address, 3);
+      netif->hwaddr[4] = GET_HWADDR_BYTE (net_address, 4);
+      netif->hwaddr[5] = GET_HWADDR_BYTE (net_address, 5);
+    }
+  else
+    error (0, 0, "%s: Invalid Ethernet address",
+	   netif_get_state (netif)->devname);
+
+  /* Maximum transfer unit: MSS + IP header size + TCP header size */
+  netif->mtu = TCP_MSS + 0x28;
+
+  /* Enable Ethernet multicasting */
+  hurdethif_device_get_flags (netif, &netif_get_state (netif)->flags);
+  netif_get_state (netif)->flags |=
+    IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_ALLMULTI;
+  hurdethif_device_set_flags (netif, netif_get_state (netif)->flags);
+
+  /*
+   * Up the link, set the interface type to NETIF_FLAG_ETHARP
+   * and enable other features.
+   */
+  netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP
+    | NETIF_FLAG_IGMP | NETIF_FLAG_MLD6;
+
+  return ERR_OK;
 }
 
 static void *
