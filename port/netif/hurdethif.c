@@ -267,7 +267,7 @@ hurdethif_output (struct netif *netif, struct pbuf *p)
   error_t err;
   hurdethif *ethif = netif_get_state (netif);
   int count;
-  u8_t tried;
+  uint8_t tried;
 
   if (p->tot_len != p->len)
     /* Drop the packet */
@@ -311,9 +311,9 @@ void
 hurdethif_input (struct netif *netif, struct net_rcv_msg *msg)
 {
   struct pbuf *p, *q;
-  u16_t len;
-  u16_t off;
-  u16_t next_read;
+  uint16_t len;
+  uint16_t off;
+  uint16_t next_read;
 
   /* Get the size of the whole packet */
   len = PBUF_LINK_HLEN
