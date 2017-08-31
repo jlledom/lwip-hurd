@@ -44,8 +44,8 @@ hurdloopif_device_set_flags (struct netif *netif, uint16_t flags)
 /*
  * Update the interface's MTU
  */
-error_t
-hurdloopif_device_update_mtu (struct netif * netif, uint32_t mtu)
+static error_t
+hurdloopif_device_update_mtu (struct netif *netif, uint32_t mtu)
 {
   error_t err = 0;
 
@@ -60,7 +60,7 @@ hurdloopif_device_update_mtu (struct netif * netif, uint32_t mtu)
  * Returns 0 on success.
  */
 static error_t
-hurdloopif_device_terminate (struct netif * netif)
+hurdloopif_device_terminate (struct netif *netif)
 {
   /* Free the hook */
   free (netif_get_state (netif)->devname);

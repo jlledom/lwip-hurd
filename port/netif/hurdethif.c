@@ -419,8 +419,8 @@ hurdethif_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
 /*
  * Update the interface's MTU and the BPF filter
  */
-error_t
-hurdethif_device_update_mtu (struct netif * netif, uint32_t mtu)
+static error_t
+hurdethif_device_update_mtu (struct netif *netif, uint32_t mtu)
 {
   error_t err = 0;
 
@@ -437,7 +437,7 @@ hurdethif_device_update_mtu (struct netif * netif, uint32_t mtu)
  * Returns 0 on success.
  */
 static error_t
-hurdethif_device_terminate (struct netif * netif)
+hurdethif_device_terminate (struct netif *netif)
 {
   /* Free the hook */
   free (netif_get_state (netif)->devname);
