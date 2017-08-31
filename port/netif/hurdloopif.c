@@ -45,7 +45,7 @@ hurdloopif_device_set_flags (struct netif *netif, uint16_t flags)
  * Update the interface's MTU
  */
 error_t
-hurdloopif_update_mtu (struct netif * netif, uint32_t mtu)
+hurdloopif_device_update_mtu (struct netif * netif, uint32_t mtu)
 {
   error_t err = 0;
 
@@ -59,24 +59,21 @@ hurdloopif_update_mtu (struct netif * netif, uint32_t mtu)
  *
  * Returns 0 on success.
  */
-error_t
-hurdloopif_terminate (struct netif * netif)
+static error_t
+hurdloopif_device_terminate (struct netif * netif)
 {
   /* Free the hook */
   free (netif_get_state (netif)->devname);
-  mem_free (netif_get_state (netif));
+  free (netif_get_state (netif));
 
   return 0;
 }
 
 /*
  * Set up the LwIP loopback interface
- *
- * This function should be passed as a parameter to netif_add() so it may be
- * called many times.
  */
 error_t
-hurdloopif_init (struct netif * netif)
+hurdloopif_device_init (struct netif * netif)
 {
   error_t err = 0;
   hurdloopif *loopif;
@@ -85,7 +82,7 @@ hurdloopif_init (struct netif * netif)
    * Replace the hook by a new one with the proper size.
    * The old one is in the stack and will be removed soon.
    */
-  loopif = mem_malloc (sizeof (hurdloopif));
+  loopif = malloc (sizeof (hurdloopif));
   if (loopif == NULL)
     {
       LWIP_DEBUGF (NETIF_DEBUG, ("hurdloopif_init: out of memory\n"));
@@ -104,8 +101,8 @@ hurdloopif_init (struct netif * netif)
 
   loopif->open = 0;
   loopif->close = 0;
-  loopif->terminate = hurdloopif_terminate;
-  loopif->update_mtu = hurdloopif_update_mtu;
+  loopif->terminate = hurdloopif_device_terminate;
+  loopif->update_mtu = hurdloopif_device_update_mtu;
   loopif->change_flags = hurdloopif_device_set_flags;
 
   return err;

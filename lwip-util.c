@@ -108,7 +108,7 @@ init_loopback ()
   struct ifcommon ifc;
 
   memset (&ifc, 0, sizeof (struct ifcommon));
-  ifc.init = hurdloopif_init;
+  ifc.init = hurdloopif_device_init;
   netif_list->state = &ifc;
 
   if_init (netif_list);
