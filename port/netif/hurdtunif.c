@@ -64,8 +64,8 @@ dequeue (struct pbufqueue *q)
 /*
  * Update the interface's MTU
  */
-error_t
-hurdtunif_update_mtu (struct netif * netif, uint32_t mtu)
+static error_t
+hurdtunif_device_update_mtu (struct netif *netif, uint32_t mtu)
 {
   error_t err = 0;
 
@@ -92,8 +92,8 @@ hurdtunif_device_set_flags (struct netif *netif, uint16_t flags)
  *
  * Returns 0 on success.
  */
-error_t
-hurdtunif_terminate (struct netif * netif)
+static error_t
+hurdtunif_device_terminate (struct netif *netif)
 {
   struct pbuf *p;
   struct hurdtunif *tunif = (struct hurdtunif *) netif_get_state (netif);
@@ -107,13 +107,18 @@ hurdtunif_terminate (struct netif * netif)
 
   /* Free the hook */
   free (netif_get_state (netif)->devname);
-  mem_free (netif_get_state (netif));
+  free (netif_get_state (netif));
 
   return 0;
 }
 
-error_t
-hurdtunif_output (struct netif * netif, struct pbuf * p,
+/*
+ * Called from lwip.
+ *
+ * Just enqueue the data.
+ */
+static error_t
+hurdtunif_output (struct netif *netif, struct pbuf *p,
 		  const ip4_addr_t * ipaddr)
 {
   error_t err = 0;
@@ -160,12 +165,10 @@ hurdtunif_output (struct netif * netif, struct pbuf * p,
 }
 
 /*
- * Set up the tunnel.
- *
- * This function should be passed as a parameter to netif_add().
+ * Set up the tunnel a new tunnel device
  */
 error_t
-hurdtunif_init (struct netif * netif)
+hurdtunif_device_init (struct netif * netif)
 {
   error_t err = 0;
   struct hurdtunif *tunif;
@@ -175,7 +178,7 @@ hurdtunif_init (struct netif * netif)
    * Replace the hook by a new one with the proper size.
    * The old one is in the stack and will be removed soon.
    */
-  tunif = mem_malloc (sizeof (struct hurdtunif));
+  tunif = malloc (sizeof (struct hurdtunif));
   if (tunif == NULL)
     {
       LWIP_DEBUGF (NETIF_DEBUG, ("hurdtunif_init: out of memory\n"));
@@ -199,24 +202,28 @@ hurdtunif_init (struct netif * netif)
     /* Setting up the translator at /dev/tunX.  */
     asprintf (&tunif->comm.devname, "/dev/%s", base_name);
 
+  /* Set the device type */
   tunif->comm.type = ARPHRD_TUNNEL;
 
-  netif->mtu = 1500;
+  /* MTU = MSS + IP header + TCP header */
+  netif->mtu = TCP_MSS + 0x28;
 
+  /* Set flags */
   hurdtunif_device_set_flags (netif,
 			      IFF_UP | IFF_RUNNING | IFF_POINTOPOINT |
 			      IFF_NOARP);
 
   netif->flags = NETIF_FLAG_LINK_UP;
 
+  /* Set the callbacks */
   netif->output = hurdtunif_output;
   tunif->comm.open = 0;
   tunif->comm.close = 0;
-  tunif->comm.terminate = hurdtunif_terminate;
-  tunif->comm.update_mtu = hurdtunif_update_mtu;
+  tunif->comm.terminate = hurdtunif_device_terminate;
+  tunif->comm.update_mtu = hurdtunif_device_update_mtu;
   tunif->comm.change_flags = hurdtunif_device_set_flags;
 
-  /* Bind the translator to tdev->devname */
+  /* Bind the translator to tunif->comm.devname */
   tunif->underlying = file_name_lookup (tunif->comm.devname,
 					O_CREAT | O_NOTRANS, 0664);
 
@@ -395,42 +402,6 @@ trivfs_S_io_read (struct trivfs_protid *cred,
   return 0;
 }
 
-/*
- * Should allocate a pbuf and transfer the bytes of the incoming
- * packet from the interface into the pbuf.
- */
-static struct pbuf *
-hurdtunif_low_level_input (char *data, mach_msg_type_number_t datalen)
-{
-  struct pbuf *p, *q;
-  u16_t off;
-
-  /* We allocate a pbuf chain of pbufs from the pool. */
-  p = pbuf_alloc (PBUF_RAW, datalen, PBUF_POOL);
-
-  if (p != NULL)
-    {
-      /* We iterate over the pbuf chain until we have read the entire
-       * packet into the pbuf. */
-      q = p;
-      off = 0;
-      do
-	{
-	  memcpy (q->payload, data, q->len);
-
-	  off += q->len;
-
-	  if (q->tot_len == q->len)
-	    break;
-	  else
-	    q = q->next;
-	}
-      while (1);
-    }
-
-  return p;
-}
-
 /* Write data to an IO object.  If offset is -1, write at the object
    maintained file pointer.  If the object is not seekable, offset is
    ignored.  The amount successfully written is returned in amount.  A
@@ -447,7 +418,8 @@ trivfs_S_io_write (struct trivfs_protid * cred,
 		   off_t offset, mach_msg_type_number_t * amount)
 {
   struct netif *netif;
-  struct pbuf *p;
+  struct pbuf *p, *q;
+  uint16_t off;
 
   /* Deny access if they have bad credentials. */
   if (!cred)
@@ -461,11 +433,27 @@ trivfs_S_io_write (struct trivfs_protid * cred,
 
   netif = (struct netif *) cred->po->cntl->hook;
 
-  /* move received packet into a new pbuf */
-  p = hurdtunif_low_level_input (data, datalen);
-  /* if no packet could be read, silently ignore this */
-  if (p != NULL)
+  /* Allocate an empty pbuf chain for the data */
+  p = pbuf_alloc (PBUF_RAW, datalen, PBUF_POOL);
+
+  if (p)
     {
+      /* Iterate to fill the pbuf chain. */
+      q = p;
+      off = 0;
+      do
+	{
+	  memcpy (q->payload, data, q->len);
+
+	  off += q->len;
+
+	  if (q->tot_len == q->len)
+	    break;
+	  else
+	    q = q->next;
+	}
+      while (1);
+
       /* pass it to the stack */
       if (netif->input (p, netif) != ERR_OK)
 	{
@@ -473,9 +461,9 @@ trivfs_S_io_write (struct trivfs_protid * cred,
 	  pbuf_free (p);
 	  p = NULL;
 	}
-    }
 
-  *amount = datalen;
+      *amount = datalen;
+    }
 
   return 0;
 }

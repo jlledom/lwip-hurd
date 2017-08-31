@@ -50,7 +50,7 @@ create_netif_state (char *name, struct ifcommon *ifc)
     base_name = name;
 
   if (strncmp (base_name, "tun", 3) == 0)
-    ifc->init = hurdtunif_init;
+    ifc->init = hurdtunif_device_init;
   else
     ifc->init = hurdethif_device_init;
 
