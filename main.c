@@ -35,10 +35,6 @@
 #include <netif/hurdethif.h>
 #include <netif/hurdtunif.h>
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 /* Translator initialization */
 
 extern struct argp lwip_argp;
