@@ -87,6 +87,7 @@ siocgifXaddr (struct sock_user *user,
   if (type == DSTADDR)
     return EOPNOTSUPP;
 
+  /* We're only interested in geting the address family */
   err = lwip_getsockname (user->sock->sockno, addr, (socklen_t *) & buflen);
   if (err)
     return err;
