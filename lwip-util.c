@@ -55,12 +55,7 @@ create_netif_state (char *name, struct ifcommon *ifc)
     ifc->init = hurdethif_device_init;
 
   /* Freed in the module terminate callback */
-  ifc->devname = malloc (strlen (name) + 1);
-  if (ifc->devname)
-    {
-      memset (ifc->devname, 0, strlen (name) + 1);
-      strncpy (ifc->devname, name, strlen (name));
-    }
+  ifc->devname = strndup (name, strlen (name));
 
   return errno;
 }
