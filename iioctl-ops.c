@@ -40,13 +40,10 @@ get_if (char *name)
   memcpy (ifname, name, IFNAMSIZ - 1);
   ifname[IFNAMSIZ - 1] = 0;
 
-  netif = netif_list;
-  while (netif != 0)
+  for (netif = netif_list; netif != 0; netif = netif->next)
     {
       if (strcmp (netif_get_state (netif)->devname, ifname) == 0)
 	break;
-
-      netif = netif->next;
     }
 
   return netif;
@@ -360,8 +357,7 @@ lwip_S_iioctl_siocgifindex (struct sock_user * user,
     return EOPNOTSUPP;
 
   i = 1;			/* The first index must be 1 */
-  netif = netif_list;
-  while (netif != 0)
+  for (netif = netif_list; netif != 0; netif = netif->next)
     {
       if (strcmp (netif_get_state (netif)->devname, ifnam) == 0)
 	{
@@ -369,7 +365,6 @@ lwip_S_iioctl_siocgifindex (struct sock_user * user,
 	  break;
 	}
 
-      netif = netif->next;
       i++;
     }
 
@@ -396,13 +391,11 @@ lwip_S_iioctl_siocgifname (struct sock_user * user,
     return EINVAL;
 
   i = 1;			/* The first index is 1 */
-  netif = netif_list;
-  while (netif != 0)
+  for (netif = netif_list; netif != 0; netif = netif->next)
     {
       if (i == *index)
 	break;
 
-      netif = netif->next;
       i++;
     }
 

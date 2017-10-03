@@ -49,8 +49,7 @@ dev_ifconf (struct ifconf *ifc)
   buf = (char *) ifc->ifc_req;
   len = ifc->ifc_len;
   saddr = (struct sockaddr_in *) &ifr.ifr_addr;
-  netif = netif_list;
-  while (netif != 0)
+  for (netif = netif_list; netif != 0; netif = netif->next)
     {
       if (ifc->ifc_req != 0)
 	{
@@ -72,8 +71,6 @@ dev_ifconf (struct ifconf *ifc)
 	}
       /* Update the needed buffer length */
       buf += sizeof (struct ifreq);
-
-      netif = netif->next;
     }
 
   ifc->ifc_len = buf - (char *) ifc->ifc_req;

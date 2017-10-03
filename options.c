@@ -218,14 +218,14 @@ parse_opt (int opt, char *arg, struct argp_state *state)
 	      if (addr6_prefix_len != 64)
 		{
 		  error (0, 0,
-			   "The only supported value for the prefix-length"
-			   " is /64. Defaulting to %s/64.\n", arg);
+			 "The only supported value for the prefix-length"
+			 " is /64. Defaulting to %s/64.\n", arg);
 		}
 	    }
 	  else
 	    {
 	      error (0, 0, "No prefix-length given, "
-		       "defaulting to %s/64.\n", arg);
+		     "defaulting to %s/64.\n", arg);
 	    }
 
 	  for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++)
@@ -306,13 +306,11 @@ trivfs_append_args (struct trivfs_control * fsys, char **argz,
        i.s_addr = (addr);               \
        ADD_OPT ("--%s=%s", name, inet_ntoa (i)); } while (0)
 
-  netif = netif_list;
-  while (netif != 0)
+  for (netif = netif_list; netif != 0; netif = netif->next)
     {
       /* Skip the loopback interface */
       if (netif_get_state (netif)->type == ARPHRD_LOOPBACK)
 	{
-	  netif = netif->next;
 	  continue;
 	}
 
@@ -331,8 +329,6 @@ trivfs_append_args (struct trivfs_control * fsys, char **argz,
 	  ADD_OPT ("--address6=%s/%d",
 		   ip6addr_ntoa (((ip6_addr_t *) & addr6[i])),
 		   addr6_prefix_len[i]);
-
-      netif = netif->next;
     }
 
 #undef ADD_ADDR_OPT
