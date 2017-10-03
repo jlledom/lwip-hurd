@@ -108,7 +108,7 @@ make_sock_user (struct socket *sock, int isroot, int noinstall, int consume)
   error_t err;
   struct sock_user *user;
 
-  assert (sock->refcnt != 0);
+  assert_backtrace (sock->refcnt != 0);
 
   if (noinstall)
     err = ports_create_port_noinstall (socketport_class, lwip_bucket,

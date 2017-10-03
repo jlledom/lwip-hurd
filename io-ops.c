@@ -31,7 +31,7 @@
 #include <lwip/sockets.h>
 
 error_t
-lwip_S_io_write (struct sock_user * user,
+lwip_S_io_write (struct sock_user *user,
 		 char *data,
 		 size_t datalen,
 		 off_t offset, mach_msg_type_number_t * amount)
@@ -315,7 +315,7 @@ lwip_S_io_reauthenticate (struct sock_user * user, mach_port_t rend)
 
   auth = getauth ();
   newright = ports_get_send_right (newuser);
-  assert (newright != MACH_PORT_NULL);
+  assert_backtrace (newright != MACH_PORT_NULL);
 
   do
     err = auth_server_authenticate (auth,
