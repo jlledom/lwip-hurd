@@ -205,7 +205,7 @@ hurdtunif_device_init (struct netif * netif)
   tunif->comm.type = ARPHRD_TUNNEL;
 
   /* MTU = MSS + IP header + TCP header */
-  netif->mtu = TCP_MSS + 0x28;
+  netif->mtu = TCP_MSS + 20 + 20;
 
   /* Set flags */
   hurdtunif_device_set_flags (netif,

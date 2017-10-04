@@ -521,7 +521,7 @@ hurdethif_device_init (struct netif * netif)
 	   netif_get_state (netif)->devname);
 
   /* Maximum transfer unit: MSS + IP header size + TCP header size */
-  netif->mtu = TCP_MSS + 0x28;
+  netif->mtu = TCP_MSS + 20 + 20;
 
   /* Enable Ethernet multicasting */
   hurdethif_device_get_flags (netif, &netif_get_state (netif)->flags);

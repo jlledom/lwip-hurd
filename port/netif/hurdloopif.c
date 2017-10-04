@@ -96,7 +96,7 @@ hurdloopif_device_init (struct netif * netif)
   loopif->type = ARPHRD_LOOPBACK;
 
   /* MTU = MSS + IP header + TCP header */
-  netif->mtu = TCP_MSS + 0x28;
+  netif->mtu = TCP_MSS + 20 + 20;
 
   /* Set flags */
   hurdloopif_device_set_flags (netif, IFF_UP | IFF_RUNNING | IFF_LOOPBACK);
