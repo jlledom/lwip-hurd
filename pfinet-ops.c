@@ -41,14 +41,13 @@ static void
 dev_ifconf (struct ifconf *ifc)
 {
   struct netif *netif;
-  struct ifreq ifr;
+  struct ifreq *ifr;
   struct sockaddr_in *saddr;
-  char *buf;
   int len;
 
-  buf = (char *) ifc->ifc_req;
+  ifr = ifc->ifc_req;
   len = ifc->ifc_len;
-  saddr = (struct sockaddr_in *) &ifr.ifr_addr;
+  saddr = (struct sockaddr_in *) &ifr->ifr_addr;
   for (netif = netif_list; netif != 0; netif = netif->next)
     {
       if (ifc->ifc_req != 0)
@@ -57,23 +56,21 @@ dev_ifconf (struct ifconf *ifc)
 	  if (len < (int) sizeof (struct ifreq))
 	    break;
 
-	  memset (&ifr, 0, sizeof (struct ifreq));
+	  memset (ifr, 0, sizeof (struct ifreq));
 
-	  memcpy (ifr.ifr_name, netif_get_state (netif)->devname,
-		  strlen (netif_get_state (netif)->devname));
+	  strncpy (ifr->ifr_name, netif_get_state (netif)->devname,
+		   strlen (netif_get_state (netif)->devname) + 1);
 	  saddr->sin_len = sizeof (struct sockaddr_in);
 	  saddr->sin_family = AF_INET;
 	  saddr->sin_addr.s_addr = netif_ip4_addr (netif)->addr;
 
-	  memcpy (buf, &ifr, sizeof (struct ifreq));
-
 	  len -= sizeof (struct ifreq);
 	}
       /* Update the needed buffer length */
-      buf += sizeof (struct ifreq);
+      ifr++;
     }
 
-  ifc->ifc_len = buf - (char *) ifc->ifc_req;
+  ifc->ifc_len = (uintptr_t) ifr - (uintptr_t) ifc->ifc_req;
 }
 
 /* Return the list of devices in the format provided by SIOCGIFCONF
