@@ -72,10 +72,9 @@ sock_alloc (void)
 {
   struct socket *sock;
 
-  sock = malloc (sizeof *sock);
+  sock = calloc (1, sizeof *sock);
   if (!sock)
     return 0;
-  memset (sock, 0, sizeof *sock);
   sock->sockno = -1;
   sock->identity = MACH_PORT_NULL;
   sock->refcnt = 1;

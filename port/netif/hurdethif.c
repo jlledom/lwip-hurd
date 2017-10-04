@@ -464,13 +464,12 @@ hurdethif_device_init (struct netif * netif)
    * Replace the hook by a new one with the proper size.
    * The old one is in the stack and will be removed soon.
    */
-  ethif = malloc (sizeof (hurdethif));
+  ethif = calloc (1, sizeof (hurdethif));
   if (!ethif)
     {
       LWIP_DEBUGF (NETIF_DEBUG, ("hurdethif_init: out of memory\n"));
       return ERR_MEM;
     }
-  memset (ethif, 0, sizeof (hurdethif));
   memcpy (ethif, netif_get_state (netif), sizeof (struct ifcommon));
   netif->state = ethif;
 

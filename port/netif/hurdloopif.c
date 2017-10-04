@@ -82,13 +82,12 @@ hurdloopif_device_init (struct netif * netif)
    * Replace the hook by a new one with the proper size.
    * The old one is in the stack and will be removed soon.
    */
-  loopif = malloc (sizeof (hurdloopif));
+  loopif = calloc (1, sizeof (hurdloopif));
   if (loopif == NULL)
     {
       LWIP_DEBUGF (NETIF_DEBUG, ("hurdloopif_init: out of memory\n"));
       return ERR_MEM;
     }
-  memset (loopif, 0, sizeof (hurdloopif));
   memcpy (loopif, netif_get_state (netif), sizeof (struct ifcommon));
   netif->state = loopif;
 

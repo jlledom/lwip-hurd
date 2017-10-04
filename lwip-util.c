@@ -43,6 +43,8 @@ create_netif_state (char *name, struct ifcommon *ifc)
 {
   char *base_name;
 
+  memset (ifc, 0, sizeof (struct ifcommon));
+
   base_name = strrchr (name, '/');
   if (base_name)
     base_name++;
@@ -171,9 +173,7 @@ init_ifs (void *arg)
 				in->gateway.addr, INADDR_NONE))
 	continue;
 
-      netif = malloc (sizeof (struct netif));
-      memset (netif, 0, sizeof (struct netif));
-      memset (&ifc, 0, sizeof (struct ifcommon));
+      netif = calloc (1, sizeof (struct netif));
 
       create_netif_state (in->dev_name, &ifc);
 

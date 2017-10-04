@@ -178,13 +178,12 @@ hurdtunif_device_init (struct netif * netif)
    * Replace the hook by a new one with the proper size.
    * The old one is in the stack and will be removed soon.
    */
-  tunif = malloc (sizeof (struct hurdtunif));
+  tunif = calloc (1, sizeof (struct hurdtunif));
   if (tunif == NULL)
     {
       LWIP_DEBUGF (NETIF_DEBUG, ("hurdtunif_init: out of memory\n"));
       return ERR_MEM;
     }
-  memset (tunif, 0, sizeof (struct hurdtunif));
   memcpy (tunif, netif_get_state (netif), sizeof (struct ifcommon));
   netif->state = tunif;
 
