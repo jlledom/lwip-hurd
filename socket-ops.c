@@ -29,7 +29,7 @@
 #include <lwip-hurd.h>
 
 error_t
-lwip_S_socket_create (struct trivfs_protid * master,
+lwip_S_socket_create (struct trivfs_protid *master,
 		      int sock_type,
 		      int protocol,
 		      mach_port_t * port, mach_msg_type_name_t * porttype)
@@ -366,7 +366,7 @@ struct msghdr m = { msg_name:addr ? &addr->address : 0,
 
   sockflags = lwip_fcntl (user->sock->sockno, F_GETFL, 0);
   if (sockflags & O_NONBLOCK)
-    m.msg_flags |= MSG_DONTWAIT;
+    flags |= MSG_DONTWAIT;
   sent = lwip_sendmsg (user->sock->sockno, &m, flags);
 
   /* MiG should do this for us, but it doesn't. */
