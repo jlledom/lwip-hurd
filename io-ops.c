@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <lwip/sockets.h>
 
@@ -191,7 +192,7 @@ static error_t
 lwip_io_select_common (struct sock_user *user,
 		       mach_port_t reply,
 		       mach_msg_type_name_t reply_type,
-		       struct timeval *tv, int *select_type)
+		       struct timespec *tv, int *select_type)
 {
   int ret;
   int timeout;
@@ -223,7 +224,7 @@ lwip_io_select_common (struct sock_user *user,
   *select_type = 0;
 
   nfds = 1;
-  timeout = tv ? tv->tv_sec * 1000 + tv->tv_usec / 1000 : -1;
+  timeout = tv ? tv->tv_sec * 1000 + tv->tv_nsec / 1000000 : -1;
   ret = lwip_poll (&fdp, nfds, timeout);
 
   if (ret > 0)
@@ -255,15 +256,13 @@ lwip_S_io_select_timeout (struct sock_user * user,
 			  mach_msg_type_name_t reply_type,
 			  struct timespec ts, int *select_type)
 {
-  struct timeval tv, current_tv;
+  struct timespec current_ts;
+  clock_gettime (CLOCK_REALTIME, &current_ts);
 
-  TIMESPEC_TO_TIMEVAL (&tv, &ts);
-  gettimeofday (&current_tv, 0);
+  ts.tv_sec -= current_ts.tv_sec;
+  ts.tv_nsec -= current_ts.tv_nsec;
 
-  tv.tv_sec -= current_tv.tv_sec;
-  tv.tv_usec -= current_tv.tv_usec;
-
-  return lwip_io_select_common (user, reply, reply_type, &tv, select_type);
+  return lwip_io_select_common (user, reply, reply_type, &ts, select_type);
 }
 
 
