@@ -208,12 +208,13 @@ init_ifs (void *arg)
 	    {
 	      netif_add_ip6_address (netif, address6, &ipv6_addr_idx);
 
-	      /* First use DAD to make sure nobody else has it */
 	      if (ipv6_addr_idx >= 0)
+		/* First use DAD to make sure nobody else has it */
 		netif_ip6_addr_set_state (netif, ipv6_addr_idx,
 					  IP6_ADDR_TENTATIVE);
 	      else
-		error (0, 0, "No more free slots for new IPv6 addresses\n");
+		error (0, 0, "No free slot for IPv6 address: %s\n",
+		       ip6addr_ntoa (address6));
 	    }
 	}
 
