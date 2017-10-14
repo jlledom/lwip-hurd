@@ -21,9 +21,10 @@ makemode	= server
 PORTDIR = $(srcdir)/port
 
 SRCS		= main.c io-ops.c socket-ops.c pfinet-ops.c iioctl-ops.c port-objs.c \
-						options.c lwip-util.c
+						startup-ops.c options.c lwip-util.c startup.c
 IFSRCS	= ifcommon.c hurdethif.c hurdloopif.c hurdtunif.c
-MIGSRCS		= ioServer.c socketServer.c pfinetServer.c iioctlServer.c
+MIGSRCS		= ioServer.c socketServer.c pfinetServer.c iioctlServer.c \
+							startup_notifyServer.c
 OBJS		= $(patsubst %.S,%.o,$(patsubst %.c,%.o,\
 			$(SRCS) $(IFSRCS) $(MIGSRCS)))
 

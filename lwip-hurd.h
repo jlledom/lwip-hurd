@@ -32,6 +32,7 @@
 struct port_bucket *lwip_bucket;
 struct port_class *socketport_class;
 struct port_class *addrport_class;
+struct port_class *shutdown_notify_class;
 
 struct port_class *lwip_protid_portclasses[2];
 struct port_class *lwip_cntl_portclasses[2];

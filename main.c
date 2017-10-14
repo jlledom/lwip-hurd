@@ -33,6 +33,7 @@
 #include <lwip_socket_S.h>
 #include <lwip_pfinet_S.h>
 #include <lwip_iioctl_S.h>
+#include <lwip_startup_notify_S.h>
 
 #include <netif/hurdethif.h>
 #include <netif/hurdtunif.h>
@@ -88,7 +89,8 @@ lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
 	  (routine = lwip_socket_server_routine (inp)) ||
 	  (routine = lwip_pfinet_server_routine (inp)) ||
 	  (routine = lwip_iioctl_server_routine (inp)) ||
-	  (routine = NULL, trivfs_demuxer (inp, outp)))
+	  (routine = NULL, trivfs_demuxer (inp, outp)) ||
+	  (routine = lwip_startup_notify_server_routine (inp)))
 	{
 	  if (routine)
 	    (*routine) (inp, outp);
@@ -103,7 +105,8 @@ lwip_demuxer (mach_msg_header_t * inp, mach_msg_header_t * outp)
       if ((routine = lwip_socket_server_routine (inp)) ||
 	  (routine = lwip_pfinet_server_routine (inp)) ||
 	  (routine = lwip_iioctl_server_routine (inp)) ||
-	  (routine = NULL, trivfs_demuxer (inp, outp)))
+	  (routine = NULL, trivfs_demuxer (inp, outp)) ||
+	  (routine = lwip_startup_notify_server_routine (inp)))
 	{
 	  if (routine)
 	    (*routine) (inp, outp);
