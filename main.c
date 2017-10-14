@@ -37,6 +37,7 @@
 
 #include <netif/hurdethif.h>
 #include <netif/hurdtunif.h>
+#include <startup.h>
 
 /* Translator initialization */
 
@@ -79,10 +80,10 @@ trivfs_goaway (struct trivfs_control *fsys, int flags)
 	}
 
       /* There are no sockets, so we can die without breaking anybody
-	 too badly.  We don't let user ports on the /servers/socket/2
-	 file keep us alive because those get cached in every process
-	 that ever makes a PF_INET socket, libc copes with getting
-	 MACH_SEND_INVALID_DEST and looking up the new translator.  */
+         too badly.  We don't let user ports on the /servers/socket/2
+         file keep us alive because those get cached in every process
+         that ever makes a PF_INET socket, libc copes with getting
+         MACH_SEND_INVALID_DEST and looking up the new translator.  */
       exit (0);
     }
 }
@@ -252,6 +253,10 @@ main (int argc, char **argv)
       lwip_owner = st.st_uid;
       lwip_group = st.st_gid;
     }
+
+  /* Ask init to tell us when the system is going down,
+     so we can try to be friendly to our correspondents on the network.  */
+  arrange_shutdown_notification ();
 
   ports_manage_port_operations_multithread (lwip_bucket, lwip_demuxer,
 					    30 * 1000, 2 * 60 * 1000, 0);
