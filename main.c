@@ -18,6 +18,8 @@
    along with the GNU Hurd.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lwip-hurd.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
