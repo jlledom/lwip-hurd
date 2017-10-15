@@ -22,6 +22,7 @@
 #include "lwip-hurd.h"
 
 #include <assert.h>
+#include <refcount.h>
 
 #include <lwip/sockets.h>
 
@@ -78,7 +79,7 @@ sock_alloc (void)
     return 0;
   sock->sockno = -1;
   sock->identity = MACH_PORT_NULL;
-  sock->refcnt = 1;
+  refcount_init (&sock->refcnt, 1);
 
   return sock;
 }
@@ -88,7 +89,7 @@ sock_alloc (void)
 void
 sock_release (struct socket *sock)
 {
-  if (--sock->refcnt != 0)
+  if (refcount_deref (&sock->refcnt) != 0)
     return;
 
   if (sock->sockno > -1)
@@ -120,7 +121,7 @@ make_sock_user (struct socket *sock, int isroot, int noinstall, int consume)
     return 0;
 
   if (!consume)
-    ++sock->refcnt;
+    refcount_ref (&sock->refcnt);
 
   user->isroot = isroot;
   user->sock = sock;

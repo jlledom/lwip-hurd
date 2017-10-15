@@ -28,6 +28,7 @@
 #include <sys/socket.h>
 #include <hurd/ports.h>
 #include <hurd/trivfs.h>
+#include <refcount.h>
 
 struct port_bucket *lwip_bucket;
 struct port_class *socketport_class;
@@ -56,7 +57,7 @@ struct socket
 {
   int sockno;
   mach_port_t identity;
-  uint_fast32_t refcnt;
+  refcount_t refcnt;
 };
 
 /* Multiple sock_user's can point to the same socket. */
