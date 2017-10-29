@@ -67,12 +67,19 @@ trivfs_goaway (struct trivfs_control *fsys, int flags)
       /* Stop new requests.  */
       ports_inhibit_class_rpcs (lwip_cntl_portclasses[0]);
       ports_inhibit_class_rpcs (lwip_protid_portclasses[0]);
+      ports_inhibit_class_rpcs (lwip_cntl_portclasses[1]);
+      ports_inhibit_class_rpcs (lwip_protid_portclasses[1]);
       ports_inhibit_class_rpcs (socketport_class);
+      ports_inhibit_class_rpcs (addrport_class);
 
-      if (ports_count_class (socketport_class) != 0)
+      if (ports_count_class (socketport_class) != 0
+	  || ports_count_class (addrport_class) != 0)
 	{
 	  /* We won't go away, so start things going again...  */
-	  ports_enable_class (socketport_class);
+	  ports_resume_class_rpcs (addrport_class);
+	  ports_resume_class_rpcs (socketport_class);
+	  ports_resume_class_rpcs (lwip_cntl_portclasses[1]);
+	  ports_resume_class_rpcs (lwip_protid_portclasses[1]);
 	  ports_resume_class_rpcs (lwip_cntl_portclasses[0]);
 	  ports_resume_class_rpcs (lwip_protid_portclasses[0]);
 
